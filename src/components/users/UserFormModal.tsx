@@ -116,7 +116,7 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: User
                             value={formData.name}
                             onChange={handleChange}
                             required
-                            className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-slate-900"
                             placeholder="홍길동"
                         />
                     </div>
@@ -129,7 +129,7 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: User
                             value={formData.email}
                             onChange={handleChange}
                             required
-                            className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-slate-900"
                             placeholder="user@example.com"
                         />
                     </div>
@@ -145,7 +145,7 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: User
                             onChange={handleChange}
                             required={!isEditMode}
                             minLength={6}
-                            className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-slate-900"
                             placeholder={isEditMode ? "기존 비밀번호 유지" : "비밀번호 입력 (6자 이상)"}
                         />
                     </div>
@@ -156,7 +156,7 @@ export default function UserFormModal({ isOpen, onClose, onSuccess, user }: User
                             name="role"
                             value={formData.role}
                             onChange={handleChange}
-                            className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            className="mt-1 block w-full border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-slate-900"
                         >
                             <option value="INSTRUCTOR">강사 (INSTRUCTOR)</option>
                             <option value="ADMIN">관리자 (ADMIN)</option>
