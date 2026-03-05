@@ -1,0 +1,77 @@
+import { NextResponse } from 'next/server';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { prisma } from '@/lib/prisma';
+import { v4 as uuidv4 } from 'uuid';
+
+export async function POST(req: Request) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.email) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const role = session.user.role;
+        if (role !== 'ADMIN' && role !== 'OWNER' && role !== 'INSTRUCTOR') {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const body = await req.json();
+        const { name, gender, school, grade, phone, subjectName, feePerSession, targetSessionsMonth, parents, depositorName } = body;
+        let { instructorId } = body;
+
+        // 강사가 등록할 때는 무조건 본인 ID로 강제 고정
+        if (role === 'INSTRUCTOR') {
+            // Instructor ID 찾기
+            const user = await prisma.user.findUnique({
+                where: { email: session.user.email },
+                select: { id: true }
+            });
+            instructorId = user?.id;
+        }
+
+        if (!name || !instructorId || !subjectName || !feePerSession || !targetSessionsMonth) {
+            return NextResponse.json({ error: '필수 항목을 모두 입력해주세요.' }, { status: 400 });
+        }
+
+        // 학생 및 수강 정보 트랜잭션으로 생성 (parents 배열 포함)
+        const student = await prisma.$transaction(async (tx) => {
+            const newStudent = await tx.student.create({
+                data: {
+                    name,
+                    gender: gender || null,
+                    school: school || null,
+                    grade: grade ? String(grade) : null,
+                    phone: phone || null,
+                    qrToken: uuidv4(),
+                    parents: {
+                        create: parents && Array.isArray(parents) ? parents.map((p: any) => ({
+                            name: p.name,
+                            phone: p.phone,
+                            relation: p.relation || null
+                        })) : []
+                    },
+                    enrollments: {
+                        create: {
+                            instructorId,
+                            subjectName,
+                            feePerSession: Number(feePerSession),
+                            targetSessionsMonth: Number(targetSessionsMonth),
+                            depositorName: depositorName || null
+                        }
+                    }
+                },
+                include: {
+                    enrollments: true,
+                    parents: true
+                }
+            });
+            return newStudent;
+        });
+
+        return NextResponse.json({ message: '학생 등록 완료', student });
+    } catch (error) {
+        console.error('Create Student Error:', error);
+        return NextResponse.json({ error: '학생 등록 중 오류가 발생했습니다.' }, { status: 500 });
+    }
+}

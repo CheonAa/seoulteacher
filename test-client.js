@@ -1,0 +1,1 @@
+import puppeteer from 'puppeteer'; async function test() { const browser = await puppeteer.launch(); const page = await browser.newPage(); await page.goto('http://localhost:3000/login', {waitUntil:'networkidle0'}); const loginHtml = await page.content(); console.log('Login has SYSTEM_LOGO:', loginHtml.includes('red-logo')); await browser.close(); } test();  
