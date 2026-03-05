@@ -134,7 +134,7 @@ export default function StudentForm({ instructors }: { instructors: Instructor[]
                     feePerSession: Number(formData.feePerSession),
                     targetSessionsMonth: Number(formData.targetSessionsMonth),
                     depositorName: formData.depositorName || null,
-                    parents: parents.filter(p => p.name.trim() !== ""), // 이름이 비어있는 쓸데없는 학부모 데이터 무시
+                    parents: parents.filter(p => p.name.trim() !== "" && p.phone.trim() !== ""), // 이름과 연락처가 모두 있는 학부모만 등록
                 }),
             });
 
@@ -240,10 +240,9 @@ export default function StudentForm({ instructors }: { instructors: Instructor[]
                     {parents.map((parent, index) => (
                         <div key={index} className="flex flex-col sm:flex-row gap-4 items-end bg-slate-50 p-4 rounded-md border border-slate-200">
                             <div className="flex-1 w-full relative">
-                                <label className="block text-sm font-medium text-slate-700">이름 <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-medium text-slate-700">이름</label>
                                 <input
                                     type="text"
-                                    required={index === 0} // 최소 1명은 필수입력
                                     value={parent.name}
                                     onChange={(e) => handleParentChange(index, "name", e.target.value)}
                                     className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
@@ -251,9 +250,8 @@ export default function StudentForm({ instructors }: { instructors: Instructor[]
                                 />
                             </div>
                             <div className="flex-1 w-full">
-                                <label className="block text-sm font-medium text-slate-700">관계 <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-medium text-slate-700">관계</label>
                                 <select
-                                    required={index === 0}
                                     value={parent.relation}
                                     onChange={(e) => handleParentChange(index, "relation", e.target.value)}
                                     className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
@@ -265,10 +263,9 @@ export default function StudentForm({ instructors }: { instructors: Instructor[]
                                 </select>
                             </div>
                             <div className="flex-1 w-full">
-                                <label className="block text-sm font-medium text-slate-700">연락처 <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-medium text-slate-700">연락처</label>
                                 <input
                                     type="text"
-                                    required={index === 0}
                                     value={parent.phone}
                                     onChange={(e) => handleParentChange(index, "phone", e.target.value)}
                                     className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
