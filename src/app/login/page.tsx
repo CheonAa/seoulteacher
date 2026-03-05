@@ -15,6 +15,12 @@ export default function LoginPage() {
     // System Settings State
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [siteName, setSiteName] = useState<string>("SeoulTeacher");
+    const [companyName, setCompanyName] = useState<string>("(주)서울티쳐");
+    const [companyRegNo, setCompanyRegNo] = useState<string>("");
+    const [companyAddress, setCompanyAddress] = useState<string>("");
+    const [companyPhone, setCompanyPhone] = useState<string>("");
+    const [snsName, setSnsName] = useState<string>("");
+    const [consultLink, setConsultLink] = useState<string>("");
 
     useEffect(() => {
         const loadSettings = async () => {
@@ -24,6 +30,12 @@ export default function LoginPage() {
                     const data = await res.json();
                     if (data.SYSTEM_LOGO) setLogoUrl(data.SYSTEM_LOGO);
                     if (data.SITE_NAME) setSiteName(data.SITE_NAME);
+                    if (data.COMPANY_NAME) setCompanyName(data.COMPANY_NAME);
+                    if (data.COMPANY_REG_NO) setCompanyRegNo(data.COMPANY_REG_NO);
+                    if (data.COMPANY_ADDRESS) setCompanyAddress(data.COMPANY_ADDRESS);
+                    if (data.COMPANY_PHONE) setCompanyPhone(data.COMPANY_PHONE);
+                    if (data.SNS_NAME) setSnsName(data.SNS_NAME);
+                    if (data.CONSULT_LINK) setConsultLink(data.CONSULT_LINK);
                 }
             } catch (err) {
                 console.error("Failed to load layout settings", err);
@@ -126,19 +138,25 @@ export default function LoginPage() {
                             </button>
                         </div>
 
-                        <div className="mt-6">
-                            <div className="relative">
-                                <div className="absolute inset-0 flex items-center">
-                                    <div className="w-full border-t border-slate-300" />
-                                </div>
-                                <div className="relative flex justify-center text-sm">
-                                    <span className="px-2 bg-white text-slate-500">테스트 계정 안내</span>
-                                </div>
-                            </div>
-                            <div className="mt-4 text-xs text-slate-500 text-center space-y-1">
-                                <p>대표자: owner@test.com / password123</p>
-                                <p>관리자: admin@test.com / password123</p>
-                                <p>강사: inst1@test.com / password123</p>
+                        <div className="mt-8 pt-6 border-t border-slate-200">
+                            <div className="text-xs text-slate-500 text-center space-y-1">
+                                {companyName && <p className="font-semibold text-slate-600">{companyName}</p>}
+                                {companyRegNo && <p>사업자등록번호: {companyRegNo}</p>}
+                                {companyAddress && <p>주소: {companyAddress}</p>}
+                                {(companyPhone || snsName) && (
+                                    <p>
+                                        {companyPhone && <span>Tel: {companyPhone}</span>}
+                                        {companyPhone && snsName && <span className="mx-2">|</span>}
+                                        {snsName && <span>SNS: {snsName}</span>}
+                                    </p>
+                                )}
+                                {consultLink && (
+                                    <p className="mt-2">
+                                        <a href={consultLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline">
+                                            고객 센터 / 상담 채널
+                                        </a>
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </form>
