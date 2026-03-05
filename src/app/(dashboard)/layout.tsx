@@ -52,6 +52,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     const navigation = [
         { name: "대시보드", href: `/${role.toLowerCase()}`, icon: LayoutDashboard, roles: ["OWNER", "ADMIN", "INSTRUCTOR"] },
+        { name: "사용자 관리", href: "/owner/users", icon: Users, roles: ["OWNER"] },
         { name: "공지사항", href: "/admin/notices", icon: Megaphone, roles: ["OWNER", "ADMIN", "INSTRUCTOR"] },
         { name: "학생 관리", href: "/admin/students", icon: Users, roles: ["OWNER", "ADMIN", "INSTRUCTOR"] },
         { name: "출결 대시보드", href: "/admin/attendance", icon: CalendarCheck, roles: ["OWNER", "ADMIN", "INSTRUCTOR"] },
