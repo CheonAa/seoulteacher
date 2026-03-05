@@ -7,8 +7,8 @@ import { Lock, Mail } from "lucide-react";
 
 export default function LoginPage() {
     const router = useRouter();
-    const [email, setEmail] = useState("owner@test.com"); // default for testing
-    const [password, setPassword] = useState("password123");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
