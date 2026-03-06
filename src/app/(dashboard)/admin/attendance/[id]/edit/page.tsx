@@ -9,9 +9,10 @@ export const metadata: Metadata = {
     title: '출결 기록 수정 | 관리자 대시보드',
 };
 
-export default async function EditAttendancePage({ params }: { params: { id: string } }) {
+export default async function EditAttendancePage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     const attendance = await prisma.attendance.findUnique({
-        where: { id: params.id },
+        where: { id: id },
         include: {
             enrollment: {
                 include: {

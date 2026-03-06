@@ -9,9 +9,10 @@ export const metadata: Metadata = {
     title: '강사 정보 수정 | 관리자 대시보드',
 };
 
-export default async function EditInstructorPage({ params }: { params: { id: string } }) {
+export default async function EditInstructorPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     const instructor = await prisma.user.findUnique({
-        where: { id: params.id, role: 'INSTRUCTOR' },
+        where: { id: id, role: 'INSTRUCTOR' },
         include: {
             instructorProfile: true,
         }

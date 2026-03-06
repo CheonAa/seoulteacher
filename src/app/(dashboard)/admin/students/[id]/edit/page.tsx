@@ -9,7 +9,8 @@ export const metadata: Metadata = {
     title: '학생 정보 수정 | 관리자 대시보드',
 };
 
-export default async function EditStudentPage({ params }: { params: { id: string } }) {
+export default async function EditStudentPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     // 1. Load instructor data for the dropdown
     const instructors = await prisma.user.findMany({
         where: { role: 'INSTRUCTOR' },
@@ -19,7 +20,7 @@ export default async function EditStudentPage({ params }: { params: { id: string
 
     // 2. Load student data for pre-filling
     const student = await prisma.student.findUnique({
-        where: { id: params.id },
+        where: { id: id },
         include: {
             parents: true,
             enrollments: true,
