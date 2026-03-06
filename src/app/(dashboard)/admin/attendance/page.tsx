@@ -64,7 +64,11 @@ export default async function AdminAttendancePage() {
                     </h3>
                 </div>
 
-                <AttendanceTable initialAttendances={attendances} />
+                <AttendanceTable
+                    initialAttendances={attendances}
+                    currentUserId={session.user.id}
+                    currentUserRole={session.user.role}
+                />
             </div>
         </div>
     );

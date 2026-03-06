@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { Search, Edit2, Trash2, AlertTriangle } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type InstructorData = {
     id: string;
@@ -16,15 +18,45 @@ type InstructorData = {
     _count: {
         enrollments: number;
     };
+    creatorId: string | null;
 };
 
-export default function InstructorTable({ initialInstructors }: { initialInstructors: InstructorData[] }) {
+export default function InstructorTable({ initialInstructors, currentUserId, currentUserRole }: { initialInstructors: InstructorData[], currentUserId: string, currentUserRole: string }) {
+    const router = useRouter();
     const [searchTerm, setSearchTerm] = useState("");
+
+    // Delete state
+    const [instructorToDelete, setInstructorToDelete] = useState<InstructorData | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const filteredInstructors = initialInstructors.filter(instructor =>
         instructor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         instructor.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    const handleDelete = async () => {
+        if (!instructorToDelete) return;
+
+        setIsDeleting(true);
+        try {
+            const res = await fetch(`/api/admin/instructors/${instructorToDelete.id}`, {
+                method: 'DELETE',
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "삭제에 실패했습니다.");
+            }
+
+            setInstructorToDelete(null);
+            router.refresh();
+        } catch (error) {
+            console.error(error);
+            alert("삭제 중 오류가 발생했습니다.");
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     return (
         <div className="flex flex-col w-full">
@@ -52,6 +84,7 @@ export default function InstructorTable({ initialInstructors }: { initialInstruc
                             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">보험료 공제액</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">계좌 정보 (VND / KRW)</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">담당 수강생 수</th>
+                            <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">관리</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-200">
@@ -91,12 +124,73 @@ export default function InstructorTable({ initialInstructors }: { initialInstruc
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 font-medium">
                                         {instructor._count.enrollments} 명
                                     </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                                        <div className="flex items-center justify-center space-x-2">
+                                            {(currentUserRole === 'OWNER' || instructor.id === currentUserId || instructor.creatorId === currentUserId) && (
+                                                <Link
+                                                    href={`/admin/instructors/${instructor.id}/edit`}
+                                                    className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                                    title="수정"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </Link>
+                                            )}
+                                            {(currentUserRole === 'OWNER' || instructor.creatorId === currentUserId) && (
+                                                <button
+                                                    onClick={() => setInstructorToDelete(instructor)}
+                                                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+                                                    title="삭제"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </td>
                                 </tr>
                             ))
                         )}
                     </tbody>
                 </table>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {instructorToDelete && (
+                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="p-6 sm:p-8">
+                            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mb-6 mx-auto">
+                                <AlertTriangle className="h-6 w-6 text-red-600" />
+                            </div>
+                            <div className="text-center">
+                                <h3 className="text-xl font-bold text-slate-900 mb-2">강사 데이터 삭제</h3>
+                                <p className="text-sm text-slate-500 text-balance">
+                                    <span className="font-semibold text-slate-900">{instructorToDelete.name}</span> 강사의 계정을 완전히 삭제하시겠습니까?<br />
+                                    <span className="text-red-600 font-medium">주의: 담당 수강생들의 정보가 함께 삭제될 수 있으므로 다른 강사로 인계 후 삭제하는 것을 권장합니다. </span>
+                                    이 작업은 되돌릴 수 없습니다.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="bg-slate-50 px-6 py-4 flex flex-col-reverse sm:flex-row justify-end sm:space-x-3 gap-3 sm:gap-0">
+                            <button
+                                type="button"
+                                disabled={isDeleting}
+                                onClick={() => setInstructorToDelete(null)}
+                                className="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 disabled:opacity-50 transition-colors"
+                            >
+                                취소
+                            </button>
+                            <button
+                                type="button"
+                                disabled={isDeleting}
+                                onClick={handleDelete}
+                                className="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 transition-colors"
+                            >
+                                {isDeleting ? "삭제 중..." : "위험성 확인 및 삭제"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

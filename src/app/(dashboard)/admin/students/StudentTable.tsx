@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, QrCode, X } from "lucide-react";
+import { Search, QrCode, X, Edit2, Trash2, AlertTriangle } from "lucide-react";
 import QRCode from "qrcode";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type StudentData = {
     id: string;
@@ -20,12 +22,18 @@ type StudentData = {
         targetSessionsMonth: number;
         depositorName?: string | null;
     }[];
+    creatorId: string | null;
 };
 
-export default function StudentTable({ initialStudents }: { initialStudents: StudentData[] }) {
+export default function StudentTable({ initialStudents, currentUserId, currentUserRole }: { initialStudents: StudentData[], currentUserId: string, currentUserRole: string }) {
+    const router = useRouter();
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedQrStudent, setSelectedQrStudent] = useState<StudentData | null>(null);
     const [qrImageUrl, setQrImageUrl] = useState<string>("");
+
+    // Delete state
+    const [studentToDelete, setStudentToDelete] = useState<StudentData | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
         if (selectedQrStudent) {
@@ -41,6 +49,30 @@ export default function StudentTable({ initialStudents }: { initialStudents: Stu
         student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (student.school && student.school.toLowerCase().includes(searchTerm.toLowerCase()))
     );
+
+    const handleDelete = async () => {
+        if (!studentToDelete) return;
+
+        setIsDeleting(true);
+        try {
+            const res = await fetch(`/api/admin/students/${studentToDelete.id}`, {
+                method: 'DELETE',
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "삭제에 실패했습니다.");
+            }
+
+            setStudentToDelete(null);
+            router.refresh();
+        } catch (error) {
+            console.error(error);
+            alert("삭제 중 오류가 발생했습니다.");
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     return (
         <div className="flex flex-col w-full">
@@ -68,7 +100,7 @@ export default function StudentTable({ initialStudents }: { initialStudents: Stu
                             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">성별</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">연락처</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">수강 과목 (담당 강사)</th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">QR</th>
+                            <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">QR & 관리</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-200">
@@ -117,13 +149,33 @@ export default function StudentTable({ initialStudents }: { initialStudents: Stu
                                         )}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                                        <button
-                                            onClick={() => setSelectedQrStudent(student)}
-                                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors inline-block focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            title="출결 QR 코드 보기"
-                                        >
-                                            <QrCode className="w-5 h-5" />
-                                        </button>
+                                        <div className="flex items-center justify-center space-x-2">
+                                            <button
+                                                onClick={() => setSelectedQrStudent(student)}
+                                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                title="출결 QR 코드 보기"
+                                            >
+                                                <QrCode className="w-5 h-5" />
+                                            </button>
+                                            {(currentUserRole === 'OWNER' || student.creatorId === currentUserId) && (
+                                                <Link
+                                                    href={`/admin/students/${student.id}/edit`}
+                                                    className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                                    title="수정"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </Link>
+                                            )}
+                                            {(currentUserRole === 'OWNER' || student.creatorId === currentUserId) && currentUserRole !== 'INSTRUCTOR' && (
+                                                <button
+                                                    onClick={() => setStudentToDelete(student)}
+                                                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+                                                    title="삭제"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))
@@ -172,6 +224,45 @@ export default function StudentTable({ initialStudents }: { initialStudents: Stu
                                     태블릿의 QR 스캐너를 통해 이 코드를 스캔하면 해당 학생의 출석이 기록됩니다. 학생에게 화면을 캡처하여 전달해주세요.
                                 </p>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {studentToDelete && (
+                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="p-6 sm:p-8">
+                            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mb-6 mx-auto">
+                                <AlertTriangle className="h-6 w-6 text-red-600" />
+                            </div>
+                            <div className="text-center">
+                                <h3 className="text-xl font-bold text-slate-900 mb-2">학생 데이터 삭제</h3>
+                                <p className="text-sm text-slate-500 text-balance">
+                                    <span className="font-semibold text-slate-900">{studentToDelete.name}</span> 학생의 정보를 완전히 삭제하시겠습니까?<br />
+                                    <span className="text-red-600 font-medium">주의: 등록된 학부모, 수강 내역, 출결 및 급여 관련 연결 데이터가 모두 영구적으로 삭제됩니다. </span>
+                                    이 작업은 되돌릴 수 없습니다.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="bg-slate-50 px-6 py-4 flex flex-col-reverse sm:flex-row justify-end sm:space-x-3 gap-3 sm:gap-0">
+                            <button
+                                type="button"
+                                disabled={isDeleting}
+                                onClick={() => setStudentToDelete(null)}
+                                className="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 disabled:opacity-50 transition-colors"
+                            >
+                                취소
+                            </button>
+                            <button
+                                type="button"
+                                disabled={isDeleting}
+                                onClick={handleDelete}
+                                className="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 transition-colors"
+                            >
+                                {isDeleting ? "삭제 중..." : "위험성 확인 및 삭제"}
+                            </button>
                         </div>
                     </div>
                 </div>

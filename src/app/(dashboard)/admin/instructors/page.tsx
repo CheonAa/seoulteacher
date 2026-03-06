@@ -7,6 +7,7 @@ import Link from "next/link";
 
 export default async function AdminInstructorsPage() {
     const session = await getServerSession(authOptions);
+    if (!session?.user?.email) return null;
 
     const instructors = await prisma.user.findMany({
         where: {
@@ -35,7 +36,8 @@ export default async function AdminInstructorsPage() {
             bankAccountVND: inst.instructorProfile.bankAccountVND,
             bankAccountKRW: inst.instructorProfile.bankAccountKRW,
         } : null,
-        _count: inst._count
+        _count: inst._count,
+        creatorId: inst.creatorId
     }));
 
     return (
@@ -60,7 +62,11 @@ export default async function AdminInstructorsPage() {
                     </h3>
                 </div>
 
-                <InstructorTable initialInstructors={serializedInstructors} />
+                <InstructorTable
+                    initialInstructors={serializedInstructors}
+                    currentUserId={session.user.id}
+                    currentUserRole={session.user.role}
+                />
             </div>
         </div>
     );

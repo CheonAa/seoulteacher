@@ -30,13 +30,14 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: '유효하지 않은 수강 정보입니다.' }, { status: 404 });
         }
 
+        const currentUser = await prisma.user.findUnique({
+            where: { email: session.user.email },
+            select: { id: true }
+        });
+
         // 강사일 경우, 본인의 학생인지 검증
         if (role === 'INSTRUCTOR') {
-            const user = await prisma.user.findUnique({
-                where: { email: session.user.email },
-                select: { id: true }
-            });
-            if (enrollment.instructorId !== user?.id) {
+            if (enrollment.instructorId !== currentUser?.id) {
                 return NextResponse.json({ error: '본인이 담당하는 학생의 출결만 기록할 수 있습니다.' }, { status: 403 });
             }
         }
@@ -53,7 +54,8 @@ export async function POST(req: Request) {
                 enrollmentId,
                 date: attendanceDate,
                 status,
-                method: 'MANUAL'
+                method: 'MANUAL',
+                creatorId: currentUser?.id
             }
         });
 

@@ -10,23 +10,36 @@ type Instructor = {
     email: string;
 };
 
-export default function StudentForm({ instructors }: { instructors: Instructor[] }) {
+export default function StudentForm({ instructors, initialData, isEdit = false }: {
+    instructors: Instructor[],
+    initialData?: any,
+    isEdit?: boolean
+}) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const [parents, setParents] = useState([{ name: "", phone: "", relation: "Mother" }]);
+    const [parents, setParents] = useState(initialData?.parents && initialData.parents.length > 0
+        ? initialData.parents
+        : [{ name: "", phone: "", relation: "Mother" }]
+    );
+
+    // For edit form, pick the first enrollment to match the UI shape
+    const firstEnrollment = initialData?.enrollments?.[0];
+
     const [formData, setFormData] = useState({
-        name: "",
-        gender: "M",
-        school: "",
-        grade: "",
-        phone: "",
-        instructorId: instructors.length > 0 ? instructors[0].id : "",
-        subjectName: "",
-        feePerSession: "875000",
-        targetSessionsMonth: "8",
-        depositorName: "",
+        name: initialData?.name || "",
+        gender: initialData?.gender || "M",
+        school: initialData?.school || "",
+        grade: initialData?.grade || "",
+        phone: initialData?.phone || "",
+        instructorId: firstEnrollment?.instructorId || (instructors.length > 0 ? instructors[0].id : ""),
+        subjectName: firstEnrollment?.subjectName || "",
+        feePerSession: String(firstEnrollment?.feePerSession || "875000"),
+        targetSessionsMonth: String(firstEnrollment?.targetSessionsMonth || "8"),
+        depositorName: firstEnrollment?.depositorName || "",
+        shuttleStatus: initialData?.shuttleStatus || "NOT_BOARDING",
+        shuttleLocation: initialData?.shuttleLocation || "",
     });
 
     const [calc, setCalc] = useState({
@@ -106,7 +119,7 @@ export default function StudentForm({ instructors }: { instructors: Instructor[]
     };
 
     const removeParent = (index: number) => {
-        const newParents = parents.filter((_, i) => i !== index);
+        const newParents = parents.filter((_: any, i: number) => i !== index);
         setParents(newParents);
     };
 
@@ -120,26 +133,23 @@ export default function StudentForm({ instructors }: { instructors: Instructor[]
         setError(null);
 
         try {
-            const res = await fetch("/api/admin/students", {
-                method: "POST",
+            const url = isEdit ? `/api/admin/students/${initialData.id}` : "/api/admin/students";
+            const method = isEdit ? "PUT" : "POST";
+
+            const res = await fetch(url, {
+                method,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    name: formData.name,
-                    gender: formData.gender,
-                    school: formData.school,
-                    grade: formData.grade,
-                    phone: formData.phone || null,
-                    instructorId: formData.instructorId,
-                    subjectName: formData.subjectName,
+                    ...formData,
                     feePerSession: Number(formData.feePerSession),
                     targetSessionsMonth: Number(formData.targetSessionsMonth),
                     depositorName: formData.depositorName || null,
-                    parents: parents.filter(p => p.name.trim() !== "" && p.phone.trim() !== ""), // 이름과 연락처가 모두 있는 학부모만 등록
+                    parents: parents.filter((p: any) => p.name.trim() !== "" && p.phone.trim() !== ""),
                 }),
             });
 
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "등록에 실패했습니다.");
+            if (!res.ok) throw new Error(data.error || "저장에 실패했습니다.");
 
             router.push("/admin/students");
             router.refresh();
@@ -220,6 +230,35 @@ export default function StudentForm({ instructors }: { instructors: Instructor[]
                         />
                     </div>
                 </div>
+
+                {/* 추가된 셔틀 차량 정보 부분 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-slate-100">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700">차량 탑승 여부</label>
+                        <select
+                            name="shuttleStatus"
+                            value={formData.shuttleStatus}
+                            onChange={handleChange}
+                            className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        >
+                            <option value="NOT_BOARDING">미탑승</option>
+                            <option value="BOARDING">탑승</option>
+                        </select>
+                    </div>
+                    {formData.shuttleStatus === 'BOARDING' && (
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700">차량 탑승지</label>
+                            <input
+                                type="text"
+                                name="shuttleLocation"
+                                value={formData.shuttleLocation}
+                                onChange={handleChange}
+                                className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                placeholder="Royal City R5 앞"
+                            />
+                        </div>
+                    )}
+                </div>
             </div>
 
             <div>
@@ -237,7 +276,7 @@ export default function StudentForm({ instructors }: { instructors: Instructor[]
                 </div>
 
                 <div className="space-y-4">
-                    {parents.map((parent, index) => (
+                    {parents.map((parent: any, index: number) => (
                         <div key={index} className="flex flex-col sm:flex-row gap-4 items-end bg-slate-50 p-4 rounded-md border border-slate-200">
                             <div className="flex-1 w-full relative">
                                 <label className="block text-sm font-medium text-slate-700">이름</label>
@@ -482,7 +521,7 @@ export default function StudentForm({ instructors }: { instructors: Instructor[]
                     ) : (
                         <>
                             <Save className="w-4 h-4 mr-2" />
-                            등록하기
+                            {isEdit ? "변경사항 저장" : "등록하기"}
                         </>
                     )}
                 </button>

@@ -26,6 +26,9 @@ model User {
   shuttleSchedules ShuttleSchedule[]
   notices          Notice[]
 
+  creatorId String? // Added to track who created this user
+
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -56,6 +59,11 @@ model Student {
   enrollments Enrollment[]
   parents     Parent[] // 학생 1명당 여러 학부모 정보 등록 가능
 
+  shuttleStatus   String? @default("NOT_BOARDING") // BOARDING, NOT_BOARDING
+  shuttleLocation String? // 차량 탑승지 (ex: Royal City R5)
+  creatorId       String? // Added to track who created this record
+
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -84,9 +92,11 @@ model Attendance {
   enrollmentId String
   enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
 
-  date   DateTime @default(now())
-  status String   @default("PRESENT") // PRESENT, ABSENT, EXCUSED
-  method String   @default("MANUAL") // MANUAL, QR_SCAN
+  date      DateTime @default(now())
+  status    String   @default("PRESENT") // PRESENT, ABSENT, EXCUSED
+  method    String   @default("MANUAL") // MANUAL, QR_SCAN
+  creatorId String?  // Added to track who created this record
+
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -12,15 +12,19 @@ type EnrollmentDetails = {
     instructor: { name: string };
 };
 
-export default function AttendanceForm({ enrollments }: { enrollments: EnrollmentDetails[] }) {
+export default function AttendanceForm({ enrollments, initialData, isEdit = false }: {
+    enrollments: EnrollmentDetails[],
+    initialData?: any,
+    isEdit?: boolean
+}) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const [formData, setFormData] = useState({
-        enrollmentId: enrollments.length > 0 ? enrollments[0].id : "",
-        date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
-        status: "PRESENT",
+        enrollmentId: initialData?.enrollmentId || (enrollments.length > 0 ? enrollments[0].id : ""),
+        date: initialData?.date ? format(new Date(initialData.date), "yyyy-MM-dd'T'HH:mm") : format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+        status: initialData?.status || "PRESENT",
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -33,8 +37,11 @@ export default function AttendanceForm({ enrollments }: { enrollments: Enrollmen
         setError(null);
 
         try {
-            const res = await fetch("/api/admin/attendance", {
-                method: "POST",
+            const url = isEdit ? `/api/admin/attendance/${initialData.id}` : "/api/admin/attendance";
+            const method = isEdit ? "PUT" : "POST";
+
+            const res = await fetch(url, {
+                method,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     enrollmentId: formData.enrollmentId,
@@ -44,7 +51,7 @@ export default function AttendanceForm({ enrollments }: { enrollments: Enrollmen
             });
 
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "출결 등록에 실패했습니다.");
+            if (!res.ok) throw new Error(data.error || "저장에 실패했습니다.");
 
             router.push("/admin/attendance");
             router.refresh();
@@ -135,7 +142,7 @@ export default function AttendanceForm({ enrollments }: { enrollments: Enrollmen
                     ) : (
                         <>
                             <Save className="w-4 h-4 mr-2" />
-                            기록하기
+                            {isEdit ? "변경사항 저장" : "기록하기"}
                         </>
                     )}
                 </button>

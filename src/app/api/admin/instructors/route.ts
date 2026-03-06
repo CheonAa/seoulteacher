@@ -23,6 +23,15 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: '이미 존재하는 이메일입니다.' }, { status: 400 });
         }
 
+        let creatorId = null;
+        const currentUser = await prisma.user.findUnique({
+            where: { email: session.user.email },
+            select: { id: true }
+        });
+        if (currentUser) {
+            creatorId = currentUser.id;
+        }
+
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // 강사 계정 및 프로필 생성 (트랜잭션)
@@ -33,6 +42,7 @@ export async function POST(req: Request) {
                     email,
                     password: hashedPassword,
                     role: 'INSTRUCTOR',
+                    creatorId,
                 }
             });
 

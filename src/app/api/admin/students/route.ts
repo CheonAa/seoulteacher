@@ -17,17 +17,21 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { name, gender, school, grade, phone, subjectName, feePerSession, targetSessionsMonth, parents, depositorName } = body;
+        const { name, gender, school, grade, phone, subjectName, feePerSession, targetSessionsMonth, parents, depositorName, shuttleStatus, shuttleLocation } = body;
         let { instructorId } = body;
+
+        let creatorId = null;
+        const currentUser = await prisma.user.findUnique({
+            where: { email: session.user.email },
+            select: { id: true }
+        });
+        if (currentUser) {
+            creatorId = currentUser.id;
+        }
 
         // 강사가 등록할 때는 무조건 본인 ID로 강제 고정
         if (role === 'INSTRUCTOR') {
-            // Instructor ID 찾기
-            const user = await prisma.user.findUnique({
-                where: { email: session.user.email },
-                select: { id: true }
-            });
-            instructorId = user?.id;
+            instructorId = creatorId;
         }
 
         if (!name || !instructorId || !subjectName || !feePerSession || !targetSessionsMonth) {
@@ -44,6 +48,9 @@ export async function POST(req: Request) {
                     grade: grade ? String(grade) : null,
                     phone: phone || null,
                     qrToken: uuidv4(),
+                    shuttleStatus: shuttleStatus || "NOT_BOARDING",
+                    shuttleLocation: shuttleLocation || null,
+                    creatorId,
                     parents: {
                         create: parents && Array.isArray(parents) ? parents.map((p: any) => ({
                             name: p.name,

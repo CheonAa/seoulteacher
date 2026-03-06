@@ -67,7 +67,11 @@ export default async function AdminStudentsPage() {
                     </h3>
                 </div>
 
-                <StudentTable initialStudents={students} />
+                <StudentTable
+                    initialStudents={students}
+                    currentUserId={session.user.id}
+                    currentUserRole={session.user.role}
+                />
             </div>
         </div>
     );

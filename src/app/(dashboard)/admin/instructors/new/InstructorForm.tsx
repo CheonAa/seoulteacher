@@ -4,19 +4,19 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
 
-export default function InstructorForm() {
+export default function InstructorForm({ initialData, isEdit = false }: { initialData?: any, isEdit?: boolean }) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const [formData, setFormData] = useState({
-        name: "",
-        email: "",
-        password: "",
-        baseRate: "65",
-        insuranceFee: "0",
-        bankAccountVND: "",
-        bankAccountKRW: "",
+        name: initialData?.name || "",
+        email: initialData?.email || "",
+        password: "", // 항상 빈 칸 (수정일 땐 입력시에만 변경)
+        baseRate: initialData?.instructorProfile?.baseRate ? String(initialData.instructorProfile.baseRate * 100) : "65",
+        insuranceFee: initialData?.instructorProfile?.insuranceFee ? String(initialData.instructorProfile.insuranceFee) : "0",
+        bankAccountVND: initialData?.instructorProfile?.bankAccountVND || "",
+        bankAccountKRW: initialData?.instructorProfile?.bankAccountKRW || "",
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,14 +29,17 @@ export default function InstructorForm() {
         setError(null);
 
         try {
-            const res = await fetch("/api/admin/instructors", {
-                method: "POST",
+            const url = isEdit ? `/api/admin/instructors/${initialData.id}` : "/api/admin/instructors";
+            const method = isEdit ? "PUT" : "POST";
+
+            const res = await fetch(url, {
+                method,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(formData),
             });
 
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "강사 등록에 실패했습니다.");
+            if (!res.ok) throw new Error(data.error || "강사 저장에 실패했습니다.");
 
             router.push("/admin/instructors");
             router.refresh();
@@ -84,11 +87,11 @@ export default function InstructorForm() {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700">초기 비밀번호 <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-medium text-slate-700">비밀번호 {isEdit ? "(변경시에만 입력)" : <span className="text-red-500">*</span>}</label>
                         <input
                             type="password"
                             name="password"
-                            required
+                            required={!isEdit}
                             value={formData.password}
                             onChange={handleChange}
                             className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
@@ -171,7 +174,7 @@ export default function InstructorForm() {
                     ) : (
                         <>
                             <Save className="w-4 h-4 mr-2" />
-                            등록하기
+                            {isEdit ? "변경사항 저장" : "등록하기"}
                         </>
                     )}
                 </button>
