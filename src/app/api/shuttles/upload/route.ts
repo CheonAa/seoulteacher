@@ -27,8 +27,8 @@ export async function POST(req: Request) {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
 
-        // Parse to JSON
-        const data: Record<string, unknown>[] = xlsx.utils.sheet_to_json(worksheet, { defval: "" });
+        // Parse to JSON WITH raw: false so we get the text string (e.g. "15:40") instead of Excel number fraction (e.g. 0.6527)
+        const data: Record<string, unknown>[] = xlsx.utils.sheet_to_json(worksheet, { defval: "", raw: false, dateNF: "HH:mm" });
 
         if (!data || data.length === 0) {
             return NextResponse.json({ error: '데이터가 없습니다.' }, { status: 400 });
