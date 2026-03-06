@@ -136,7 +136,7 @@ export default function AdminShuttlePage() {
                 "시간": "16:45",
                 "장소": "Royal City R5",
                 "학생명": "진소율, 윤재희",
-                "강사ID": "",
+                "강사명": "",
                 "색상": "#bae6fd"
             },
             {
@@ -147,7 +147,7 @@ export default function AdminShuttlePage() {
                 "시간": "17:35",
                 "장소": "강남, 정문재",
                 "학생명": "심윤후",
-                "강사ID": "",
+                "강사명": "",
                 "색상": "#e9d5ff"
             }
         ];
