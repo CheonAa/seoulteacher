@@ -147,7 +147,7 @@ export default function LoginPage() {
                                     <p>
                                         {companyPhone && <span>Tel: {companyPhone}</span>}
                                         {companyPhone && snsName && <span className="mx-2">|</span>}
-                                        {snsName && <span>SNS: {snsName}</span>}
+                                        {snsName && <span>인스타그램: <a href={snsName} target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-slate-800">바로가기</a></span>}
                                     </p>
                                 )}
                                 {consultLink && (

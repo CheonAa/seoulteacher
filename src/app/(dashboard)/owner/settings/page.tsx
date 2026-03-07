@@ -257,8 +257,8 @@ export default function OwnerSettingsPage() {
                             <input type="text" name="COMPANY_PHONE" value={settings.COMPANY_PHONE} onChange={handleChange} className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="010-1234-5678" />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700">공식 SNS명</label>
-                            <input type="text" name="SNS_NAME" value={settings.SNS_NAME} onChange={handleChange} className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="@seoulteacher_official" />
+                            <label className="block text-sm font-medium text-slate-700">인스타그램 링크</label>
+                            <input type="text" name="SNS_NAME" value={settings.SNS_NAME} onChange={handleChange} className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="https://www.instagram.com/edu.seoul" />
                         </div>
                         <div className="md:col-span-2">
                             <label className="block text-sm font-medium text-slate-700">카카오톡 등 상담채널 링크</label>

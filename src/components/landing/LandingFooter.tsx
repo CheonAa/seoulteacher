@@ -11,7 +11,7 @@ export default function LandingFooter({ settings }: LandingFooterProps) {
     const regNo = settings?.["COMPANY_REG_NO"] || "123-45-67890";
     const address = settings?.["COMPANY_ADDRESS"] || "A14 Fivestar Mỹ Đình, Ngõ 154 Đình Thôn, Phường Cầu Giấy, TP. Hà Nội, Việt Nam";
     const phone = settings?.["COMPANY_PHONE"] || "012-345-6789";
-    const snsLink = settings?.["SNS_NAME"] || "#";
+    const snsLink = settings?.["SNS_NAME"] || "https://www.instagram.com/edu.seoul";
     const siteName = settings?.["SITE_NAME"] || "HANOI SEOUL ACADEMY";
 
     return (
@@ -38,7 +38,7 @@ export default function LandingFooter({ settings }: LandingFooterProps) {
                         <ul className="space-y-4 text-sm font-medium">
                             <li><a href="#about" className="hover:text-blue-400 transition-colors">학원소개</a></li>
                             <li><a href="#curriculum" className="hover:text-blue-400 transition-colors">커리큘럼</a></li>
-                            <li><a href="https://www.instagram.com/edu.seoul" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition-colors">인스타그램</a></li>
+                            <li><a href={snsLink} target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition-colors">인스타그램</a></li>
                             <li><a href="#location" className="hover:text-blue-400 transition-colors">오시는 길</a></li>
                         </ul>
                     </div>
@@ -74,7 +74,7 @@ export default function LandingFooter({ settings }: LandingFooterProps) {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <a href="https://www.instagram.com/edu.seoul" target="_blank" rel="noopener noreferrer" className="p-2 bg-slate-800 rounded-full hover:bg-slate-700 hover:text-white transition-all">
+                        <a href={snsLink} target="_blank" rel="noopener noreferrer" className="p-2 bg-slate-800 rounded-full hover:bg-slate-700 hover:text-white transition-all">
                             <Instagram className="w-4 h-4" />
                         </a>
                     </div>
