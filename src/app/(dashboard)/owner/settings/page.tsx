@@ -15,6 +15,7 @@ export default function OwnerSettingsPage() {
         SYSTEM_LOGO: "", // Base64 image
         DASHBOARD_LOGO: "", // Base64 image
         COMPANY_NAME: "",
+        REPRESENTATIVE_NAME: "", // New Field
         COMPANY_REG_NO: "",
         COMPANY_ADDRESS: "",
         COMPANY_PHONE: "",
@@ -233,6 +234,10 @@ export default function OwnerSettingsPage() {
                         <div>
                             <label className="block text-sm font-medium text-slate-700">회사/법인명</label>
                             <input type="text" name="COMPANY_NAME" value={settings.COMPANY_NAME} onChange={handleChange} className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="(주)서울티쳐" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700">대표자명</label>
+                            <input type="text" name="REPRESENTATIVE_NAME" value={settings.REPRESENTATIVE_NAME} onChange={handleChange} className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="홍길동" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700">사업자 등록번호</label>

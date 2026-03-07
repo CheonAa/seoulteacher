@@ -8,11 +8,13 @@ interface LandingFooterProps {
 export default function LandingFooter({ settings }: LandingFooterProps) {
     // Default values if settings not found
     const companyName = settings?.["COMPANY_NAME"] || "HANOI SEOUL ACADEMY";
+    const repName = settings?.["REPRESENTATIVE_NAME"] || "김대표";
     const regNo = settings?.["COMPANY_REG_NO"] || "123-45-67890";
-    const address = settings?.["COMPANY_ADDRESS"] || "A14 Fivestar Mỹ Đình, Ngõ 154 Đình Thôn, Phường Cầu Giấy, TP. Hà Nội, Việt Nam";
+    const address = settings?.["COMPANY_ADDRESS"] || "A14 Fivestar Mỹ Đình, Ngõ 154 Đình Thôn, Phường Cầu 기ấy, TP. Hà Nội, Việt Nam";
     const phone = settings?.["COMPANY_PHONE"] || "012-345-6789";
     const snsLink = settings?.["SNS_NAME"] || "https://www.instagram.com/edu.seoul";
     const siteName = settings?.["SITE_NAME"] || "HANOI SEOUL ACADEMY";
+    const dashboardLogo = settings?.["DASHBOARD_LOGO"] || null;
 
     return (
         <footer className="bg-slate-900 text-slate-300 py-16 border-t border-slate-800">
@@ -22,13 +24,19 @@ export default function LandingFooter({ settings }: LandingFooterProps) {
 
                     {/* Brand Info */}
                     <div className="lg:col-span-2">
-                        <h5 className="text-white text-xl font-bold mb-6 tracking-tight">{companyName}</h5>
+                        <div className="mb-6">
+                            {dashboardLogo ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={dashboardLogo} alt={siteName} className="h-10 w-auto object-contain" />
+                            ) : (
+                                <h5 className="text-white text-xl font-bold tracking-tight">{siteName}</h5>
+                            )}
+                        </div>
 
                         <div className="space-y-2 text-sm text-slate-400">
-                            <p>대표자: 김대표 | 원장: 이원장</p>
+                            <p className="text-white font-medium mb-1">{companyName}</p>
+                            <p>대표자: {repName}</p>
                             <p>사업자등록번호: {regNo}</p>
-                            <p>학원설립운영등록번호: 제 1234호</p>
-                            <p>통신판매업신고: 제 2026-하노이-0123호</p>
                         </div>
                     </div>
 
