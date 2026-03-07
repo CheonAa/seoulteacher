@@ -1,8 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
-import { CalendarCheck } from "lucide-react";
-import InstructorAttendanceTable from "./InstructorAttendanceTable";
+import AttendanceRoster from "@/components/AttendanceRoster";
 import AttendanceHeadcount from "@/components/AttendanceHeadcount";
 import { redirect } from "next/navigation";
 
@@ -52,17 +51,7 @@ export default async function InstructorAttendancePage() {
             </div>
 
             <AttendanceHeadcount attendances={attendances as any} role="INSTRUCTOR" />
-
-            <div className="bg-white shadow rounded-lg border border-slate-200 overflow-hidden flex flex-col">
-                <div className="px-4 py-5 sm:px-6 border-b border-slate-200 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                    <h3 className="text-lg font-medium leading-6 text-slate-900 flex items-center gap-2">
-                        <CalendarCheck className="w-5 h-5 text-blue-600" />
-                        내 담당 수업 전체 출결 기록 ({attendances.length}건)
-                    </h3>
-                </div>
-
-                <InstructorAttendanceTable initialAttendances={attendances} />
-            </div>
+            <AttendanceRoster attendances={attendances as any} role="INSTRUCTOR" currentUserId={user.id} />
         </div>
     );
 }
