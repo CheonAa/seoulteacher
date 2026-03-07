@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Calculator } from "lucide-react";
+import { Save, Calculator, Plus, Trash2 } from "lucide-react";
 
 type Instructor = {
     id: string;
@@ -24,8 +24,24 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
         : [{ name: "", phone: "", relation: "Mother" }]
     );
 
-    // For edit form, pick the first enrollment to match the UI shape
-    const firstEnrollment = initialData?.enrollments?.[0];
+    const [enrollments, setEnrollments] = useState<any[]>(initialData?.enrollments && initialData.enrollments.length > 0
+        ? initialData.enrollments.map((enr: any) => ({
+            id: enr.id || "",
+            instructorId: enr.instructorId || (instructors.length > 0 ? instructors[0].id : ""),
+            subjectName: enr.subjectName || "",
+            feePerSession: String(enr.feePerSession || "875000"),
+            targetSessionsMonth: String(enr.targetSessionsMonth || "8"),
+            depositorName: enr.depositorName || "",
+        }))
+        : [{
+            id: "",
+            instructorId: instructors.length > 0 ? instructors[0].id : "",
+            subjectName: "",
+            feePerSession: "875000",
+            targetSessionsMonth: "8",
+            depositorName: "",
+        }]
+    );
 
     const [formData, setFormData] = useState({
         name: initialData?.name || "",
@@ -33,11 +49,6 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
         school: initialData?.school || "",
         grade: initialData?.grade || "",
         phone: initialData?.phone || "",
-        instructorId: firstEnrollment?.instructorId || (instructors.length > 0 ? instructors[0].id : ""),
-        subjectName: firstEnrollment?.subjectName || "",
-        feePerSession: String(firstEnrollment?.feePerSession || "875000"),
-        targetSessionsMonth: String(firstEnrollment?.targetSessionsMonth || "8"),
-        depositorName: firstEnrollment?.depositorName || "",
         shuttleStatus: initialData?.shuttleStatus || "NOT_BOARDING",
         shuttleLocation: initialData?.shuttleLocation || "",
     });
@@ -46,7 +57,8 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
         curriculum: 'KOREAN',
         period: 'SEMESTER',
         gradeGroup: 'ELEM',
-        sessions: 8
+        sessions: 8,
+        targetIndex: 0 // Keep track of which enrollment index we're applying the calculation to
     });
 
     const [totalFee, setTotalFee] = useState(7000000);
@@ -100,11 +112,20 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
         setTotalFee(fee);
 
         if (fee > 0) {
-            setFormData(prev => ({
-                ...prev,
-                feePerSession: String(Math.round(fee / sessions)),
-                targetSessionsMonth: String(sessions)
-            }));
+            const rawSessionFee = fee / sessions;
+            const truncatedSessionFee = Math.floor(rawSessionFee / 1000) * 1000;
+
+            setEnrollments(prev => {
+                const newArr = [...prev];
+                if (newArr[calc.targetIndex]) {
+                    newArr[calc.targetIndex] = {
+                        ...newArr[calc.targetIndex],
+                        feePerSession: String(truncatedSessionFee),
+                        targetSessionsMonth: String(sessions)
+                    };
+                }
+                return newArr;
+            });
         }
     }, [calc]);
 
@@ -123,6 +144,28 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
         setParents(newParents);
     };
 
+    const handleEnrollmentChange = (index: number, field: string, value: string) => {
+        const newEnrollments = [...enrollments];
+        newEnrollments[index] = { ...newEnrollments[index], [field]: value };
+        setEnrollments(newEnrollments);
+    };
+
+    const addEnrollment = () => {
+        setEnrollments([...enrollments, {
+            id: "", // Empty ID for new enrollments
+            instructorId: instructors.length > 0 ? instructors[0].id : "",
+            subjectName: "",
+            feePerSession: "875000",
+            targetSessionsMonth: "8",
+            depositorName: "",
+        }]);
+    };
+
+    const removeEnrollment = (index: number) => {
+        const newEnrollments = enrollments.filter((_: any, i: number) => i !== index);
+        setEnrollments(newEnrollments);
+    };
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
@@ -136,16 +179,31 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
             const url = isEdit ? `/api/admin/students/${initialData.id}` : "/api/admin/students";
             const method = isEdit ? "PUT" : "POST";
 
+            const processedEnrollments = enrollments.map(enr => ({
+                id: enr.id,
+                instructorId: enr.instructorId,
+                subjectName: enr.subjectName,
+                feePerSession: Number(enr.feePerSession),
+                targetSessionsMonth: Number(enr.targetSessionsMonth),
+                depositorName: enr.depositorName || null
+            }));
+
+            // Calculate total fee per session truncation per requirement
+            const finalEnrollments = processedEnrollments.map(enr => ({
+                ...enr,
+                feePerSession: Math.floor(enr.feePerSession / 1000) * 1000
+            }));
+
+            const payload = {
+                ...formData,
+                parents: parents.filter((p: any) => p.name.trim() !== "" && p.phone.trim() !== ""),
+                enrollments: finalEnrollments,
+            };
+
             const res = await fetch(url, {
                 method,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    ...formData,
-                    feePerSession: Number(formData.feePerSession),
-                    targetSessionsMonth: Number(formData.targetSessionsMonth),
-                    depositorName: formData.depositorName || null,
-                    parents: parents.filter((p: any) => p.name.trim() !== "" && p.phone.trim() !== ""),
-                }),
+                body: JSON.stringify(payload),
             });
 
             const data = await res.json();
@@ -231,7 +289,6 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                     </div>
                 </div>
 
-                {/* 추가된 셔틀 차량 정보 부분 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-slate-100">
                     <div>
                         <label className="block text-sm font-medium text-slate-700">차량 탑승 여부</label>
@@ -333,6 +390,18 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                 <div className="bg-blue-50/50 p-5 rounded-lg border border-blue-100 mb-6 space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                         <div>
+                            <label className="block text-xs font-semibold text-blue-800 mb-1">적용할 수강 항목</label>
+                            <select
+                                value={calc.targetIndex}
+                                onChange={(e) => setCalc(prev => ({ ...prev, targetIndex: Number(e.target.value) }))}
+                                className="block w-full bg-white text-slate-900 border border-slate-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            >
+                                {enrollments.map((enr, i) => (
+                                    <option key={i} value={i}>수강 정보 {i + 1} ({enr.subjectName || "미지원 과목"})</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
                             <label className="block text-xs font-semibold text-blue-800 mb-1">교육과정</label>
                             <select
                                 value={calc.curriculum}
@@ -430,76 +499,104 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                     </div>
                 </div>
 
-                <h3 className="text-lg font-medium text-slate-900 border-b border-slate-200 pb-2 mb-4">
-                    최초 수강 등록 정보 (Enrollment)
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700">담당 강사 <span className="text-red-500">*</span></label>
-                        <select
-                            name="instructorId"
-                            required
-                            value={formData.instructorId}
-                            onChange={handleChange}
-                            className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        >
-                            <option value="" disabled>강사를 선택하세요</option>
-                            {instructors.map(inst => (
-                                <option key={inst.id} value={inst.id}>{inst.name} ({inst.email})</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700">수강 과목 명 <span className="text-red-500">*</span></label>
-                        <input
-                            type="text"
-                            name="subjectName"
-                            required
-                            value={formData.subjectName}
-                            onChange={handleChange}
-                            className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                            placeholder="인터수학 기초"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700">1회차 수강료 (VND) <span className="text-red-500">*</span></label>
-                        <input
-                            type="number"
-                            name="feePerSession"
-                            required
-                            min="0"
-                            step="1000"
-                            value={formData.feePerSession}
-                            onChange={handleChange}
-                            className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                            placeholder="1562500"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700">월 목표 회차 <span className="text-red-500">*</span></label>
-                        <input
-                            type="number"
-                            name="targetSessionsMonth"
-                            required
-                            min="1"
-                            max="31"
-                            value={formData.targetSessionsMonth}
-                            onChange={handleChange}
-                            className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                            placeholder="8"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700">입금자명 (예금주)</label>
-                        <input
-                            type="text"
-                            name="depositorName"
-                            value={formData.depositorName}
-                            onChange={handleChange}
-                            className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                            placeholder="학생 이름 또는 학부모 이름"
-                        />
-                    </div>
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2 mb-4">
+                    <h3 className="text-lg font-medium text-slate-900">
+                        수강 등록 정보 (Enrollment)
+                    </h3>
+                    <button
+                        type="button"
+                        onClick={addEnrollment}
+                        className="text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1 rounded-md font-medium transition-colors"
+                    >
+                        <Plus className="w-4 h-4 inline-block mr-1" />
+                        수강 과목 추가
+                    </button>
+                </div>
+
+                <div className="space-y-6">
+                    {enrollments.map((enr: any, index: number) => (
+                        <div key={index} className="bg-slate-50 p-5 rounded-lg border border-slate-200 relative">
+                            {enrollments.length > 1 && (
+                                <button
+                                    type="button"
+                                    onClick={() => removeEnrollment(index)}
+                                    className="absolute top-4 right-4 text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded transition-colors"
+                                >
+                                    <Trash2 className="w-5 h-5" />
+                                </button>
+                            )}
+                            <h4 className="text-sm font-semibold text-slate-700 mb-4 pb-2 border-b border-slate-200 w-fit">수강 정보 {index + 1}</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700">담당 강사 <span className="text-red-500">*</span></label>
+                                    <select
+                                        name="instructorId"
+                                        required
+                                        value={enr.instructorId}
+                                        onChange={(e) => handleEnrollmentChange(index, "instructorId", e.target.value)}
+                                        className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    >
+                                        <option value="" disabled>강사를 선택하세요</option>
+                                        {instructors.map(inst => (
+                                            <option key={inst.id} value={inst.id}>{inst.name} ({inst.email})</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700">수강 과목 명 <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="text"
+                                        name="subjectName"
+                                        required
+                                        value={enr.subjectName}
+                                        onChange={(e) => handleEnrollmentChange(index, "subjectName", e.target.value)}
+                                        className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                        placeholder="인터수학 기초"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700">1회차 수강료 (VND) <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="number"
+                                        name="feePerSession"
+                                        required
+                                        min="0"
+                                        step="1000"
+                                        value={enr.feePerSession}
+                                        onChange={(e) => handleEnrollmentChange(index, "feePerSession", e.target.value)}
+                                        className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                        placeholder="1562000"
+                                    />
+                                    <p className="mt-1 text-xs text-slate-500">천 단위 미만 절사(버림)로 입력해주세요.</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700">목표 회차 <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="number"
+                                        name="targetSessionsMonth"
+                                        required
+                                        min="1"
+                                        max="60"
+                                        value={enr.targetSessionsMonth}
+                                        onChange={(e) => handleEnrollmentChange(index, "targetSessionsMonth", e.target.value)}
+                                        className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                        placeholder="8"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700">입금자명 (예금주)</label>
+                                    <input
+                                        type="text"
+                                        name="depositorName"
+                                        value={enr.depositorName}
+                                        onChange={(e) => handleEnrollmentChange(index, "depositorName", e.target.value)}
+                                        className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                        placeholder="학생 또는 학부모 이름"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
 

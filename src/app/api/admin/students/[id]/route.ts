@@ -67,8 +67,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         }
 
         const body = await req.json();
-        const { name, gender, school, grade, phone, subjectName, feePerSession, targetSessionsMonth, parents, depositorName, shuttleStatus, shuttleLocation } = body;
-        let { instructorId } = body;
+        const { name, gender, school, grade, phone, parents, shuttleStatus, shuttleLocation, enrollments = [] } = body;
 
         // 강사가 수정할 때는 무조건 본인 ID로 강제 고정 (보안상)
         if (role === 'INSTRUCTOR') {
@@ -76,14 +75,18 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 where: { email: session.user.email },
                 select: { id: true }
             });
-            instructorId = user?.id;
+            if (user) {
+                enrollments.forEach((enr: any) => {
+                    enr.instructorId = user.id;
+                });
+            }
         }
 
-        if (!name || !instructorId || !subjectName || !feePerSession || !targetSessionsMonth) {
+        if (!name || enrollments.length === 0) {
             return NextResponse.json({ error: '필수 항목을 모두 입력해주세요.' }, { status: 400 });
         }
 
-        // 트랜잭션으로 학생, 부모, 그리고 첫 번째 수강 이력 수정
+        // 트랜잭션으로 학생, 부모, 그리고 수강 이력 전체 수정
         await prisma.$transaction(async (tx) => {
             // 1. 학생 기본 정보 업데이트
             const updatedStudent = await tx.student.update({
@@ -115,35 +118,21 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 });
             }
 
-            // 3. 첫 번째 수강 정보 업데이트 (폼이 단일 수강권 기준이므로 첫번째만 업데이트)
-            // 여러 개일 경우 가장 먼저 만들어진 것을 수정
-            const firstEnrollment = await tx.enrollment.findFirst({
-                where: { studentId: id },
-                orderBy: { createdAt: 'asc' }
+            // 3. 수강 정보 업데이트 (기존 삭제 후 재생성)
+            await tx.enrollment.deleteMany({
+                where: { studentId: id }
             });
 
-            if (firstEnrollment) {
-                await tx.enrollment.update({
-                    where: { id: firstEnrollment.id },
-                    data: {
-                        instructorId,
-                        subjectName,
-                        feePerSession: Number(feePerSession),
-                        targetSessionsMonth: Number(targetSessionsMonth),
-                        depositorName: depositorName || null
-                    }
-                });
-            } else {
-                // 수강 이력이 없다면 새로 생성
-                await tx.enrollment.create({
-                    data: {
+            if (enrollments && Array.isArray(enrollments) && enrollments.length > 0) {
+                await tx.enrollment.createMany({
+                    data: enrollments.map((enr: any) => ({
                         studentId: id,
-                        instructorId,
-                        subjectName,
-                        feePerSession: Number(feePerSession),
-                        targetSessionsMonth: Number(targetSessionsMonth),
-                        depositorName: depositorName || null
-                    }
+                        instructorId: enr.instructorId,
+                        subjectName: enr.subjectName,
+                        feePerSession: Number(enr.feePerSession),
+                        targetSessionsMonth: Number(enr.targetSessionsMonth),
+                        depositorName: enr.depositorName || null
+                    }))
                 });
             }
 

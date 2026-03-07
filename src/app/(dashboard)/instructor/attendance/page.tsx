@@ -3,6 +3,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
 import { CalendarCheck } from "lucide-react";
 import InstructorAttendanceTable from "./InstructorAttendanceTable";
+import AttendanceHeadcount from "@/components/AttendanceHeadcount";
 import { redirect } from "next/navigation";
 
 export default async function InstructorAttendancePage() {
@@ -49,6 +50,8 @@ export default async function InstructorAttendancePage() {
                     내 수업/출결 내역
                 </h1>
             </div>
+
+            <AttendanceHeadcount attendances={attendances as any} role="INSTRUCTOR" />
 
             <div className="bg-white shadow rounded-lg border border-slate-200 overflow-hidden flex flex-col">
                 <div className="px-4 py-5 sm:px-6 border-b border-slate-200 flex flex-col sm:flex-row justify-between sm:items-center gap-4">

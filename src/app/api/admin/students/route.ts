@@ -17,8 +17,7 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { name, gender, school, grade, phone, subjectName, feePerSession, targetSessionsMonth, parents, depositorName, shuttleStatus, shuttleLocation } = body;
-        let { instructorId } = body;
+        const { name, gender, school, grade, phone, parents, shuttleStatus, shuttleLocation, enrollments = [] } = body;
 
         let creatorId = null;
         const currentUser = await prisma.user.findUnique({
@@ -31,10 +30,12 @@ export async function POST(req: Request) {
 
         // 강사가 등록할 때는 무조건 본인 ID로 강제 고정
         if (role === 'INSTRUCTOR') {
-            instructorId = creatorId;
+            enrollments.forEach((enr: any) => {
+                enr.instructorId = creatorId;
+            });
         }
 
-        if (!name || !instructorId || !subjectName || !feePerSession || !targetSessionsMonth) {
+        if (!name || enrollments.length === 0) {
             return NextResponse.json({ error: '필수 항목을 모두 입력해주세요.' }, { status: 400 });
         }
 
@@ -59,13 +60,13 @@ export async function POST(req: Request) {
                         })) : []
                     },
                     enrollments: {
-                        create: {
-                            instructorId,
-                            subjectName,
-                            feePerSession: Number(feePerSession),
-                            targetSessionsMonth: Number(targetSessionsMonth),
-                            depositorName: depositorName || null
-                        }
+                        create: enrollments.map((enr: any) => ({
+                            instructorId: enr.instructorId,
+                            subjectName: enr.subjectName,
+                            feePerSession: Number(enr.feePerSession),
+                            targetSessionsMonth: Number(enr.targetSessionsMonth),
+                            depositorName: enr.depositorName || null
+                        }))
                     }
                 },
                 include: {
