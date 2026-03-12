@@ -107,6 +107,22 @@ export default function DashboardShuttleSchedule() {
         return grouped;
     };
 
+    const getPrintDateString = () => {
+        if (!selectedDay) return "";
+        const today = new Date();
+        const mapping = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+        const todayIdx = today.getDay();
+        const selectedIdx = mapping.indexOf(selectedDay);
+        const diff = selectedIdx - todayIdx;
+        const targetDate = new Date(today);
+        targetDate.setDate(today.getDate() + diff);
+        
+        const m = targetDate.getMonth() + 1;
+        const d = targetDate.getDate();
+        const korDay = DAYS.find(day => day.value === selectedDay)?.label.split(' ')[0] || "";
+        return `${m}/${d}/${korDay}`;
+    };
+
     if (!selectedDay) return null;
 
     return (
@@ -149,11 +165,11 @@ export default function DashboardShuttleSchedule() {
             </div>
 
             {/* Print Only Header */}
-            <div className="hidden print:block mb-6 text-center">
-                <h1 className="text-2xl font-bold bg-slate-800 text-white py-2 rounded-t-lg">
-                    신나게뛰는 아이들 차량 시간표 ({DAYS.find(d => d.value === selectedDay)?.label})
+            <div className="hidden print:block mb-4 text-center">
+                <h1 className="text-xl font-bold bg-slate-800 text-white py-2 rounded mb-2 print:text-black print:bg-slate-200">
+                    서울 학원 차량 시간표 ({getPrintDateString()})
                 </h1>
-                <style dangerouslySetInnerHTML={{ __html: `@page { size: A4 landscape; margin: 10mm; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }` }} />
+                <style dangerouslySetInnerHTML={{ __html: `@page { size: A4 landscape; margin: 5mm; } @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; zoom: 0.85; } }` }} />
             </div>
 
             <div className="p-4 sm:p-6 flex-1 overflow-y-auto print:p-0 print:overflow-visible print:h-auto print:block">
@@ -170,7 +186,7 @@ export default function DashboardShuttleSchedule() {
                     </div>
                 ) : (
                     // On print, force grid to show all vehicles horizontally
-                    <div className="space-y-8 print:space-y-0 print:grid print:grid-cols-4 print:gap-4 print:items-start w-full">
+                    <div className="space-y-8 print:space-y-0 print:grid print:grid-cols-4 print:gap-2 print:items-start w-full">
                         {vehicleKeys.map(vehicle => {
                             const roundsData = vehiclesData[vehicle];
                             const rounds = Object.keys(roundsData).map(Number).sort((a, b) => a - b);
