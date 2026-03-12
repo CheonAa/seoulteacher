@@ -37,8 +37,34 @@ export default async function AdminAttendancePage() {
                 }
             }
         },
-        orderBy: {
-            date: 'desc'
+    });
+
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+
+    // Fetch billing for these enrollments to calc remaining sessions
+    const enrollmentIds = [...new Set(attendances.map(a => a.enrollmentId))];
+    const billings = await prisma.monthlyBilling.findMany({
+        where: {
+            enrollmentId: { in: enrollmentIds },
+            year: currentYear,
+            month: currentMonth
+        }
+    });
+
+    const attendancesWithRemaining = attendances.map(att => {
+        const billing = billings.find(b => b.enrollmentId === att.enrollmentId);
+        let remainingSessions = 999; // Default if no billing found yet
+        if (billing) {
+            remainingSessions = (billing.targetSessions + billing.carryOverSessions) - billing.attendedSessions;
+            if (remainingSessions < 0) remainingSessions = 0;
+        }
+        return {
+            ...att,
+            enrollment: {
+                ...att.enrollment,
+                remainingSessions
+            }
         }
     });
 
@@ -57,7 +83,7 @@ export default async function AdminAttendancePage() {
             </div>
 
             <AttendanceHeadcount attendances={attendances as any} role="ADMIN" />
-            <AttendanceRoster attendances={attendances as any} role="ADMIN" currentUserId={session.user.id} />
+            <AttendanceRoster attendances={attendancesWithRemaining as any} role="ADMIN" currentUserId={session.user.id} />
         </div>
     );
 }

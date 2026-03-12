@@ -118,22 +118,48 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 });
             }
 
-            // 3. 수강 정보 업데이트 (기존 삭제 후 재생성)
+            // 3. 수강 정보 업데이트 (기존 유지, 없는 것만 삭제 후 생성/수정)
+            const payloadEnrollmentIds = enrollments
+                .map((enr: any) => enr.id)
+                .filter((enrId: any) => enrId && enrId.trim() !== "");
+
+            // Payload에 없는 기존 수강 정보는 삭제 (단, Attendance/MonthlyBilling 도 캐스케이드 삭제되므로 주의)
             await tx.enrollment.deleteMany({
-                where: { studentId: id }
+                where: { 
+                    studentId: id,
+                    id: { notIn: payloadEnrollmentIds }
+                }
             });
 
             if (enrollments && Array.isArray(enrollments) && enrollments.length > 0) {
-                await tx.enrollment.createMany({
-                    data: enrollments.map((enr: any) => ({
-                        studentId: id,
+                for (const enr of enrollments) {
+                    const enrData = {
                         instructorId: enr.instructorId,
                         subjectName: enr.subjectName,
                         feePerSession: Number(enr.feePerSession),
                         targetSessionsMonth: Number(enr.targetSessionsMonth),
-                        depositorName: enr.depositorName || null
-                    }))
-                });
+                        depositorName: enr.depositorName || null,
+                        startDate: enr.startDate ? new Date(enr.startDate) : new Date(),
+                        status: enr.status || "ACTIVE",
+                        pausedReason: enr.pausedReason || null,
+                    };
+
+                    if (enr.id && enr.id.trim() !== "") {
+                        // 기존 수강 정보 업데이트
+                        await tx.enrollment.update({
+                            where: { id: enr.id },
+                            data: enrData
+                        });
+                    } else {
+                        // 새로운 수강 정보 추가
+                        await tx.enrollment.create({
+                            data: {
+                                ...enrData,
+                                studentId: id
+                            }
+                        });
+                    }
+                }
             }
 
             return updatedStudent;

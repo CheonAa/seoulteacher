@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Calculator, Plus, Trash2 } from "lucide-react";
+import { Save, Calculator, Plus, Trash2, ArrowRightLeft, PlayCircle, X } from "lucide-react";
 
 type Instructor = {
     id: string;
@@ -32,6 +32,9 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
             feePerSession: String(enr.feePerSession || "875000"),
             targetSessionsMonth: String(enr.targetSessionsMonth || "8"),
             depositorName: enr.depositorName || "",
+            status: enr.status || "ACTIVE",
+            startDate: enr.startDate ? new Date(enr.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            pausedReason: enr.pausedReason || null,
         }))
         : [{
             id: "",
@@ -40,6 +43,9 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
             feePerSession: "875000",
             targetSessionsMonth: "8",
             depositorName: "",
+            status: "ACTIVE",
+            startDate: new Date().toISOString().split('T')[0],
+            pausedReason: null,
         }]
     );
 
@@ -158,6 +164,9 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
             feePerSession: "875000",
             targetSessionsMonth: "8",
             depositorName: "",
+            status: "ACTIVE",
+            startDate: new Date().toISOString().split('T')[0],
+            pausedReason: null,
         }]);
     };
 
@@ -185,7 +194,10 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                 subjectName: enr.subjectName,
                 feePerSession: Number(enr.feePerSession),
                 targetSessionsMonth: Number(enr.targetSessionsMonth),
-                depositorName: enr.depositorName || null
+                depositorName: enr.depositorName || null,
+                status: enr.status,
+                startDate: enr.startDate,
+                pausedReason: enr.pausedReason
             }));
 
             // Calculate total fee per session truncation per requirement
@@ -216,6 +228,101 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
             setLoading(false);
         }
     };
+
+    const [transitioningIndex, setTransitioningIndex] = useState<number | null>(null);
+    const [resumingIndex, setResumingIndex] = useState<number | null>(null);
+
+    const handleTransition = async (index: number) => {
+        const enr = enrollments[index];
+        if (!enr.id) {
+            alert("저장되지 않은 수강 정보는 전환할 수 없습니다. 먼저 저장하세요.");
+            return;
+        }
+
+        const subjectName = prompt("특강 수강 과목 명을 입력하세요 (예: 인터수학 여름특강):");
+        if (!subjectName) return;
+        const feePerSession = prompt("특강 1회당 수강료를 입력하세요 (VND):", enr.feePerSession);
+        if (!feePerSession) return;
+        const targetSessionsMonth = prompt("특강 목표 회차를 입력하세요:", "12");
+        if (!targetSessionsMonth) return;
+        const startDate = prompt("특강 시작 일자를 입력하세요 (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
+        if (!startDate) return;
+
+        if (confirm("기존 수강을 일시 중단하고 이월 회차를 포함하여 특강으로 전환하시겠습니까?")) {
+            setLoading(true);
+            try {
+                const res = await fetch(`/api/admin/enrollment/${enr.id}/transition`, {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        subjectName,
+                        feePerSession: Number(feePerSession),
+                        targetSessionsMonth: Number(targetSessionsMonth),
+                        depositorName: enr.depositorName,
+                        startDate
+                    })
+                });
+                
+                if (!res.ok) throw new Error("전환 실패");
+                alert("성공적으로 특강으로 전환되었습니다.");
+                router.refresh();
+                window.location.reload();
+            } catch (err) {
+                alert("오류가 발생했습니다.");
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
+    const handleResume = async (index: number) => {
+        const enr = enrollments[index]; // This is the PAUSED enrollment
+        if (!enr.id || enr.status !== "PAUSED") return;
+
+        // Find candidate active enrollments to close (usually the vacation one)
+        const activeEnrollments = enrollments.filter(e => e.status === "ACTIVE" && e.id);
+        if (activeEnrollments.length === 0) {
+            alert("종료하고 이월할 진행 중인 특강을 찾을 수 없습니다.");
+            return;
+        }
+
+        let vacationEnrollmentId = activeEnrollments[0].id;
+        if (activeEnrollments.length > 1) {
+            const selected = prompt(
+                "여러 진행 중인 수강이 있습니다. 종료할 특강 과목 번호를 입력하세요:\n" + 
+                activeEnrollments.map((e, i) => `${i + 1}. ${e.subjectName}`).join("\n")
+            );
+            if (!selected) return;
+            const idx = parseInt(selected) - 1;
+            if (activeEnrollments[idx]) vacationEnrollmentId = activeEnrollments[idx].id;
+        }
+
+        const resumeDate = prompt("기존 학기 수업 재개 일자를 입력하세요 (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
+        if (!resumeDate) return;
+
+        if (confirm("선택한 특강을 종료하고 이월 회차를 가져와 기존 수업을 재개하시겠습니까?")) {
+            setLoading(true);
+            try {
+                const res = await fetch(`/api/admin/enrollment/${enr.id}/resume`, {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        vacationEnrollmentId,
+                        resumeDate
+                    })
+                });
+                
+                if (!res.ok) throw new Error("재개 실패");
+                alert("성공적으로 기존 수업이 재개되었습니다.");
+                router.refresh();
+                window.location.reload();
+            } catch (err) {
+                alert("오류가 발생했습니다.");
+            } finally {
+                setLoading(false);
+            }
+        }
+    }
 
     return (
         <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-8">
@@ -525,8 +632,44 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                                     <Trash2 className="w-5 h-5" />
                                 </button>
                             )}
-                            <h4 className="text-sm font-semibold text-slate-700 mb-4 pb-2 border-b border-slate-200 w-fit">수강 정보 {index + 1}</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-200">
+                                <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                                    수강 정보 {index + 1}
+                                    {enr.status === 'PAUSED' && (
+                                        <span className="px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 border border-amber-200 text-amber-800">
+                                            일시 중단 (특강 전환됨)
+                                        </span>
+                                    )}
+                                    {enr.status === 'CLOSED' && (
+                                        <span className="px-2 py-0.5 rounded text-xs font-semibold bg-slate-200 border border-slate-300 text-slate-700">
+                                            종료됨
+                                        </span>
+                                    )}
+                                </h4>
+                                <div className="flex items-center gap-2">
+                                    {enr.id && enr.status === 'ACTIVE' && isEdit && (
+                                         <button
+                                            type="button"
+                                            onClick={() => handleTransition(index)}
+                                            className="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded transition-colors"
+                                            title="해당 수강을 일시 중단하고 이월 회차를 새 특강으로 넘깁니다"
+                                         >
+                                            <ArrowRightLeft className="w-3.5 h-3.5 mr-1" /> 특강 전환
+                                         </button>
+                                    )}
+                                    {enr.id && enr.status === 'PAUSED' && isEdit && (
+                                         <button
+                                            type="button"
+                                            onClick={() => handleResume(index)}
+                                            className="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded transition-colors"
+                                            title="특강을 종료하고 해당 수강을 재개합니다"
+                                         >
+                                            <PlayCircle className="w-3.5 h-3.5 mr-1" /> 수강 재개
+                                         </button>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700">담당 강사 <span className="text-red-500">*</span></label>
                                     <select
@@ -583,7 +726,17 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                                         placeholder="8"
                                     />
                                 </div>
-                                <div>
+                                <div className="lg:col-span-1">
+                                    <label className="block text-sm font-medium text-slate-700">시작 일자</label>
+                                    <input
+                                        type="date"
+                                        name="startDate"
+                                        value={enr.startDate}
+                                        onChange={(e) => handleEnrollmentChange(index, "startDate", e.target.value)}
+                                        className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    />
+                                </div>
+                                <div className="lg:col-span-2">
                                     <label className="block text-sm font-medium text-slate-700">입금자명 (예금주)</label>
                                     <input
                                         type="text"

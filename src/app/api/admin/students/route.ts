@@ -65,7 +65,10 @@ export async function POST(req: Request) {
                             subjectName: enr.subjectName,
                             feePerSession: Number(enr.feePerSession),
                             targetSessionsMonth: Number(enr.targetSessionsMonth),
-                            depositorName: enr.depositorName || null
+                            depositorName: enr.depositorName || null,
+                            startDate: enr.startDate ? new Date(enr.startDate) : new Date(),
+                            status: enr.status || "ACTIVE",
+                            pausedReason: enr.pausedReason || null
                         }))
                     }
                 },

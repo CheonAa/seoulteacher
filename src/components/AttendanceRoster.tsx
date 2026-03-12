@@ -15,6 +15,7 @@ type AttendanceData = {
     enrollment: {
         id: string;
         subjectName: string;
+        remainingSessions?: number;
         student: { id: string; name: string };
         instructor: { id: string; name: string };
     };
@@ -158,7 +159,14 @@ export default function AttendanceRoster({
                                         {classAttendances.map(att => (
                                             <tr key={att.id} className="hover:bg-slate-50/80 transition-colors">
                                                 <td className="px-5 py-3.5 whitespace-nowrap">
-                                                    <div className="text-sm font-semibold text-slate-900">{att.enrollment.student.name}</div>
+                                                    <div className="flex items-center space-x-2">
+                                                        <div className="text-sm font-semibold text-slate-900">{att.enrollment.student.name}</div>
+                                                        {att.enrollment.remainingSessions !== undefined && att.enrollment.remainingSessions <= 2 && (
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 border border-red-200" title="수강 횟수가 얼마 남지 않았습니다">
+                                                                🔴 잔여 {att.enrollment.remainingSessions}회
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td className="px-5 py-3.5 whitespace-nowrap">
                                                     <span className={`px-2.5 py-1 inline-flex text-xs font-bold rounded-md ${att.status === 'PRESENT' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :

@@ -80,6 +80,11 @@ model Enrollment {
   targetSessionsMonth Int     @default(8) // 월 목표 횟수 (보통 8회)
   depositorName       String? // 입금자명 (학부모 또는 본인 등)
 
+  startDate    DateTime  @default(now())
+  endDate      DateTime?
+  status       String    @default("ACTIVE") // ACTIVE, CLOSED, PAUSED
+  pausedReason String?
+
   attendances     Attendance[]
   monthlyBillings MonthlyBilling[]
 
