@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { Bus, Settings2, UploadCloud, Loader2, CheckCircle2 } from "lucide-react";
+import { Bus, Settings2, UploadCloud, Loader2, CheckCircle2, Printer } from "lucide-react";
 import clsx from "clsx";
 
 type ScheduleItem = {
@@ -23,15 +23,10 @@ type ScheduleItem = {
     } | null;
 };
 
-const DAYS = [
-    { value: "MON", label: "월 (MON)" },
-    { value: "TUE", label: "화 (TUE)" },
-    { value: "WED", label: "수 (WED)" },
-    { value: "THU", label: "목 (THU)" },
-    { value: "FRI", label: "금 (FRI)" },
-    { value: "SAT", label: "토 (SAT)" },
-    { value: "SUN", label: "일 (SUN)" },
-];
+const DAYS_MAP = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const KOR_DAYS = {
+    "MON": "월요일", "TUE": "화요일", "WED": "수요일", "THU": "목요일", "FRI": "금요일", "SAT": "토요일", "SUN": "일요일"
+};
 
 const VEHICLES = ["1호 차량", "3호 차량", "5호 차량", "기타 차량"];
 
@@ -40,7 +35,21 @@ export default function ShuttlesViewerPage() {
     const role = session?.user?.role || "GUEST";
     const canManage = role === "ADMIN" || role === "OWNER";
 
-    const [selectedDay, setSelectedDay] = useState("TUE");
+
+    // Date Selection State (defaults to today)
+    const today = new Date();
+    const tzOffset = today.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(today.getTime() - tzOffset).toISOString().split('T')[0];
+    const [selectedDate, setSelectedDate] = useState(localISOTime);
+    
+    // Derived selected day
+    const getDerivedDay = (dateStr: string) => {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return "TUE"; // Fallback
+        return DAYS_MAP[d.getDay()];
+    };
+    const selectedDay = getDerivedDay(selectedDate);
+
     const [selectedVehicle, setSelectedVehicle] = useState("1호 차량");
     const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -68,7 +77,7 @@ export default function ShuttlesViewerPage() {
     useEffect(() => {
         fetchSchedules();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedDay, selectedVehicle]);
+    }, [selectedDate, selectedVehicle]);
 
     // Group by RoundIndex
     const roundGroups = schedules.reduce((acc, curr) => {
@@ -181,37 +190,40 @@ export default function ShuttlesViewerPage() {
                     ))}
                 </div>
 
-                {/* Days Tab */}
-                <div className="flex overflow-x-auto pb-2 -mx-2 px-2 sm:pb-0 sm:mx-0 sm:px-0 scrollbar-hide">
-                    <div className="flex space-x-1 sm:space-x-2">
-                        {DAYS.map(d => (
-                            <button
-                                key={d.value}
-                                onClick={() => setSelectedDay(d.value)}
-                                className={clsx(
-                                    "px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors border",
-                                    selectedDay === d.value
-                                        ? "bg-blue-50 text-blue-700 border-blue-200"
-                                        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-                                )}
-                            >
-                                {d.label}
-                            </button>
-                        ))}
+                {/* Date Picker & Print button */}
+                <div className="flex flex-col sm:flex-row items-center gap-4 border-t border-slate-200 mt-4 pt-4 sm:border-0 sm:mt-0 sm:pt-0">
+                    <div className="flex items-center gap-2">
+                        <span className="font-semibold text-slate-700 text-sm whitespace-nowrap">조회 일자:</span>
+                        <input 
+                            type="date" 
+                            name="datePicker"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="border border-slate-300 rounded px-3 py-2 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 hover:bg-white transition shadow-sm"
+                        />
                     </div>
+                    
+                    <Link
+                        href={`/shuttles/print?date=${selectedDate}`}
+                        target="_blank"
+                        className="inline-flex flex-1 sm:flex-none justify-center items-center px-4 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 text-sm font-bold rounded hover:bg-indigo-100 hover:text-indigo-800 transition shadow-sm"
+                    >
+                        <Printer className="w-4 h-4 mr-2" />
+                        A4 가로 인쇄형 보기 ({KOR_DAYS[selectedDay as keyof typeof KOR_DAYS]})
+                    </Link>
                 </div>
             </div>
 
             {/* Timetable Header */}
             <div className="bg-white shadow rounded-lg border border-slate-200 overflow-hidden">
-                <div className="bg-slate-50 border-b border-slate-200 px-6 py-4">
-                    <h2 className="text-xl font-bold text-center text-blue-900">
+                <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row justify-between items-center text-center sm:text-left gap-2">
+                    <h2 className="text-xl font-bold text-blue-900">
                         {selectedVehicle} / Xe số {selectedVehicle.charAt(0)}
                     </h2>
-                    <h3 className="text-center font-bold text-xl mt-2 mb-1">
-                        {DAYS.find(d => d.value === selectedDay)?.label.split(' ')[0]}
-                        <span className="ml-4 text-slate-500">{selectedDay}</span>
-                    </h3>
+                    <div className="text-slate-600 font-medium">
+                        <span className="text-lg text-slate-800 mr-2">{selectedDate}</span>
+                        <span className="bg-slate-200 px-2 py-1 rounded text-sm text-slate-700 font-bold">{KOR_DAYS[selectedDay as keyof typeof KOR_DAYS]} / {selectedDay}</span>
+                    </div>
                 </div>
 
                 {loading ? (
