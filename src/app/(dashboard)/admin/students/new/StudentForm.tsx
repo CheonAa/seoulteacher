@@ -239,27 +239,18 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
             return;
         }
 
-        const subjectName = prompt("특강 수강 과목 명을 입력하세요 (예: 인터수학 여름특강):");
-        if (!subjectName) return;
-        const feePerSession = prompt("특강 1회당 수강료를 입력하세요 (VND):", enr.feePerSession);
-        if (!feePerSession) return;
-        const targetSessionsMonth = prompt("특강 목표 회차를 입력하세요:", "12");
-        if (!targetSessionsMonth) return;
-        const startDate = prompt("특강 시작 일자를 입력하세요 (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
-        if (!startDate) return;
-
-        if (confirm("기존 수강을 일시 중단하고 이월 회차를 포함하여 특강으로 전환하시겠습니까?")) {
+        if (confirm("기존 수강을 일시 중단하고 이월 회차를 포함하여 동일 과목의 특강으로 전환하시겠습니까?")) {
             setLoading(true);
             try {
                 const res = await fetch(`/api/admin/enrollment/${enr.id}/transition`, {
                     method: 'POST',
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        subjectName,
-                        feePerSession: Number(feePerSession),
-                        targetSessionsMonth: Number(targetSessionsMonth),
+                        subjectName: enr.subjectName,
+                        feePerSession: Number(enr.feePerSession),
+                        targetSessionsMonth: Number(enr.targetSessionsMonth),
                         depositorName: enr.depositorName,
-                        startDate
+                        startDate: new Date().toISOString().split('T')[0]
                     })
                 });
                 
