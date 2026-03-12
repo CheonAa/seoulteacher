@@ -91,7 +91,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
                     status: "PAUSED",
                     pausedReason,
                     endDate: new Date() // Mark paused point
-                }
+                } as any
             });
 
             // 2. Create new (vacation) enrollment
@@ -105,7 +105,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
                     depositorName: depositorName || oldEnrollment.depositorName,
                     startDate: new Date(startDate),
                     status: "ACTIVE"
-                }
+                } as any
             });
 
             // 3. Create initial billing record for the new enrollment with the carryOver

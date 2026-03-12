@@ -87,7 +87,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
                 data: {
                     status: "CLOSED",
                     endDate: new Date()
-                }
+                } as any
             });
 
             // 2. Resume original enrollment
