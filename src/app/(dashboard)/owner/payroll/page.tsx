@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Save, CalendarDays, RefreshCw, Upload, Download } from "lucide-react";
-import * as xlsx from "xlsx";
+import { Save, CalendarDays, RefreshCw, FileText } from "lucide-react";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+import { NanumGothicBase64 } from "@/lib/fonts/NanumGothic-Regular";
 
 type PayrollData = {
     instructorProfileId: string;
@@ -35,8 +37,7 @@ export default function OwnerPayrollPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [uploading, setUploading] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [downloadingPDF, setDownloadingPDF] = useState(false);
     
     const [year, setYear] = useState(new Date().getFullYear());
     // Default to previous month if today is before the 5th, else current month?
@@ -110,84 +111,60 @@ export default function OwnerPayrollPage() {
         setPayrolls(newPayrolls);
     };
 
-    const handleDownloadExcel = () => {
-        const dataForExcel = payrolls.map(p => ({
-            "강사명": p.name,
-            "총 급여 VND": p.totalTuitionVND,
-            "보험 공제": p.insuranceDeduction,
-            "베트남 실수령": p.netVietnamSalary,
-            "적용 환율": p.exchangeRate,
-            "송금 수수료": p.transferFee,
-        }));
-
-        const worksheet = xlsx.utils.json_to_sheet(dataForExcel);
-        const workbook = xlsx.utils.book_new();
-        xlsx.utils.book_append_sheet(workbook, worksheet, "급여 정산");
-
-        // Auto-size columns loosely based on text
-        const wscols = [
-            { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
-        ];
-        worksheet['!cols'] = wscols;
-
-        xlsx.writeFile(workbook, `${year}년_${month}월_급여_정산.xlsx`);
-    };
-
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setUploading(true);
-        setError(null);
-
+    const handleDownloadPDF = () => {
+        setDownloadingPDF(true);
         try {
-            const reader = new FileReader();
-            reader.onload = (evt) => {
-                try {
-                    const bstr = evt.target?.result;
-                    const workbook = xlsx.read(bstr, { type: "binary" });
-                    const sheetName = workbook.SheetNames[0];
-                    const sheet = workbook.Sheets[sheetName];
-                    const data = xlsx.utils.sheet_to_json<any>(sheet);
+            const doc = new jsPDF("landscape");
+            
+            // Add Korean Font
+            doc.addFileToVFS("NanumGothic-Regular.ttf", NanumGothicBase64);
+            doc.addFont("NanumGothic-Regular.ttf", "NanumGothic", "normal");
+            doc.setFont("NanumGothic");
 
-                    const newPayrolls = [...payrolls];
-                    
-                    data.forEach((row: any) => {
-                        const name = row["강사명"];
-                        if (!name) return;
+            doc.setFontSize(18);
+            doc.text(`${year}년 ${month}월 강사 급여 정산 명세서`, 14, 22);
+            
+            doc.setFontSize(11);
+            doc.text(`출력 일자: ${new Date().toLocaleDateString('ko-KR')}`, 14, 30);
 
-                        const idx = newPayrolls.findIndex(p => p.name === name);
-                        if (idx !== -1) {
-                            // Update fields if they exist in the Excel row
-                            if (row["보험 공제"] !== undefined) {
-                                newPayrolls[idx].insuranceDeduction = Number(row["보험 공제"]) || 0;
-                            }
-                            if (row["베트남 실수령"] !== undefined) {
-                                newPayrolls[idx].netVietnamSalary = Number(row["베트남 실수령"]) || 0;
-                            }
-                            if (row["적용 환율"] !== undefined) {
-                                newPayrolls[idx].exchangeRate = Number(row["적용 환율"]) || 0;
-                            }
-                            if (row["송금 수수료"] !== undefined) {
-                                newPayrolls[idx].transferFee = Number(row["송금 수수료"]) || 0;
-                            }
-                        }
-                    });
+            const tableColumn = [
+                "강사명", "총 급여 VND", "보험 공제", "베트남 실수령", "3.5% 세금", "잔여 VND", 
+                "적용 환율", "환전 KRW", "송금 수수료", "3.3% 세금", "최종 지급 KRW"
+            ];
+            const tableRows: any[] = [];
 
-                    setPayrolls(newPayrolls);
-                    alert("엑셀 데이터가 화면에 적용되었습니다. 저장하려면 [정산 저장] 버튼을 눌러주세요.");
-                } catch (err: any) {
-                    setError("파일 파싱 중 오류가 발생했습니다: " + err.message);
-                } finally {
-                    setUploading(false);
-                    if (fileInputRef.current) fileInputRef.current.value = "";
-                }
-            };
-            reader.readAsBinaryString(file);
+            payrolls.forEach(rawPayroll => {
+                const p = calculateRow(rawPayroll);
+                tableRows.push([
+                    p.name,
+                    formatVND(p.totalTuitionVND),
+                    formatVND(p.insuranceDeduction),
+                    formatVND(p.netVietnamSalary),
+                    formatVND(p.tax35Deduction || 0),
+                    formatVND(p.remainingVND || 0),
+                    formatVND(p.exchangeRate),
+                    formatKRW(p.exchangedKRW || 0),
+                    formatKRW(p.transferFee),
+                    formatKRW(p.tax33Deduction || 0),
+                    formatKRW(p.netPaidKRW || 0)
+                ]);
+            });
+
+            (doc as any).autoTable({
+                head: [tableColumn],
+                body: tableRows,
+                startY: 36,
+                styles: { font: "NanumGothic", fontSize: 9, halign: 'right' },
+                headStyles: { fillColor: [41, 128, 185], textColor: 255, halign: 'center' },
+                columnStyles: { 0: { halign: 'left' } }, // Instructor name aligned left
+                theme: 'grid'
+            });
+
+            doc.save(`${year}년_${month}월_급여_정산_명세서.pdf`);
         } catch (err: any) {
-            setError("파일 읽기 중 오류가 발생했습니다: " + err.message);
-            setUploading(false);
-            if (fileInputRef.current) fileInputRef.current.value = "";
+            alert("PDF 생성 중 오류가 발생했습니다. 폰트 파일이 올바르게 설정되었는지 확인해 주세요. (" + err.message + ")");
+        } finally {
+            setDownloadingPDF(false);
         }
     };
 
@@ -269,28 +246,14 @@ export default function OwnerPayrollPage() {
                     
                     <div className="flex items-center bg-slate-100 rounded-md p-1 border border-slate-200 ml-2">
                         <button
-                            onClick={handleDownloadExcel}
-                            title="엑셀 양식 다운로드"
-                            className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition"
+                            onClick={handleDownloadPDF}
+                            disabled={downloadingPDF}
+                            title="PDF 명세서 다운로드"
+                            className="p-1.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded transition flex items-center gap-1.5 text-sm font-medium px-3"
                         >
-                            <Download className="w-5 h-5" />
+                            <FileText className="w-4 h-4" /> 
+                            {downloadingPDF ? "PDF 변환 중..." : "PDF 다운로드"}
                         </button>
-                        <div className="w-[1px] h-6 bg-slate-300 mx-1"></div>
-                        <button
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={uploading}
-                            title="엑셀 파일 업로드"
-                            className={`p-1.5 rounded transition ${uploading ? "text-slate-400 cursor-not-allowed" : "text-slate-600 hover:text-emerald-600 hover:bg-emerald-50"}`}
-                        >
-                            <Upload className="w-5 h-5" />
-                        </button>
-                        <input
-                            type="file"
-                            accept=".xlsx, .xls"
-                            className="hidden"
-                            ref={fileInputRef}
-                            onChange={handleFileUpload}
-                        />
                     </div>
 
                     <button

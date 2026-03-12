@@ -45,6 +45,12 @@ export default async function AdminStudentsPage() {
         }
     });
 
+    const instructors = await prisma.user.findMany({
+        where: { role: 'INSTRUCTOR' },
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' }
+    });
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -69,6 +75,7 @@ export default async function AdminStudentsPage() {
 
                 <StudentTable
                     initialStudents={students}
+                    instructors={instructors}
                     currentUserId={session.user.id}
                     currentUserRole={session.user.role}
                 />
