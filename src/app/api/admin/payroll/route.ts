@@ -15,14 +15,10 @@ export async function GET(req: Request) {
         const month = parseInt(searchParams.get("month") || String(new Date().getMonth() + 1));
 
         // Get all instructor profiles
-        let profilesQuery: any = { include: { user: true } };
-        
-        // If instructor, only fetch their own profile
-        if (session.user.role === "INSTRUCTOR") {
-            profilesQuery.where = { userId: session.user.id };
-        }
-        
-        const profiles = await prisma.instructorProfile.findMany(profilesQuery);
+        const profiles = await prisma.instructorProfile.findMany({
+            where: session.user.role === "INSTRUCTOR" ? { userId: session.user.id } : undefined,
+            include: { user: true }
+        });
 
         // Fetch attendances for the given month to calculate tuition
         const startDate = new Date(year, month - 1, 1);
