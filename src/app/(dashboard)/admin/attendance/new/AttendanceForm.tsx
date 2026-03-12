@@ -45,9 +45,17 @@ export default function AttendanceForm({ enrollments, initialData, isEdit = fals
 
     const [selectedClass, setSelectedClass] = useState<string>("");
 
+    const getInitialDateStr = (initDate?: any) => {
+        if (initDate) return format(new Date(initDate), "yyyy-MM-dd'T'HH:mm");
+        const now = new Date();
+        const minutes = now.getMinutes();
+        now.setMinutes(Math.round(minutes / 10) * 10);
+        return format(now, "yyyy-MM-dd'T'HH:mm");
+    };
+
     // Default form data
     const [formData, setFormData] = useState({
-        date: initialData?.date ? format(new Date(initialData.date), "yyyy-MM-dd'T'HH:mm") : format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+        date: getInitialDateStr(initialData?.date),
     });
 
     // Holds { [enrollmentId]: "PRESENT" | "ABSENT" | "EXCUSED" }
