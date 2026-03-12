@@ -32,20 +32,19 @@ export default function AttendanceHeadcount({ attendances, role }: { attendances
 
     // Group current data by subject
     const subjectStats = useMemo(() => {
-        const stats: Record<string, { present: number, absent: number, excused: number, sick: number, total: number }> = {};
+        const stats: Record<string, { present: number, absent: number, excused: number, total: number }> = {};
         currentData.forEach(att => {
             const key = role === 'ADMIN' && att.enrollment.instructor
                 ? `${att.enrollment.subjectName} (강사: ${att.enrollment.instructor.name})`
                 : att.enrollment.subjectName;
 
             if (!stats[key]) {
-                stats[key] = { present: 0, absent: 0, excused: 0, sick: 0, total: 0 };
+                stats[key] = { present: 0, absent: 0, excused: 0, total: 0 };
             }
             stats[key].total += 1;
             if (att.status === 'PRESENT') stats[key].present += 1;
             else if (att.status === 'ABSENT') stats[key].absent += 1;
-            else if (att.status === 'EXCUSED') stats[key].excused += 1;
-            else if (att.status === 'SICK') stats[key].sick += 1;
+            else if (att.status === 'EXCUSED' || att.status === 'SICK') stats[key].excused += 1;
         });
         return Object.entries(stats).sort((a, b) => a[0].localeCompare(b[0]));
     }, [currentData, role]);
@@ -90,7 +89,7 @@ export default function AttendanceHeadcount({ attendances, role }: { attendances
                                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-700">
                                         출석 {stats.present}
                                     </span>
-                                    {(stats.absent > 0 || stats.excused > 0 || stats.sick > 0) && (
+                                    {(stats.absent > 0 || stats.excused > 0) && (
                                         <div className="flex gap-1.5 mt-1">
                                             {stats.absent > 0 && (
                                                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
@@ -98,13 +97,8 @@ export default function AttendanceHeadcount({ attendances, role }: { attendances
                                                 </span>
                                             )}
                                             {stats.excused > 0 && (
-                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                                                    공결 {stats.excused}
-                                                </span>
-                                            )}
-                                            {stats.sick > 0 && (
                                                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
-                                                    병결 {stats.sick}
+                                                    공결(병결) {stats.excused}
                                                 </span>
                                             )}
                                         </div>

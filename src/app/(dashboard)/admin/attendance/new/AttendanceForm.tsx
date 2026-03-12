@@ -50,9 +50,9 @@ export default function AttendanceForm({ enrollments, initialData, isEdit = fals
         date: initialData?.date ? format(new Date(initialData.date), "yyyy-MM-dd'T'HH:mm") : format(new Date(), "yyyy-MM-dd'T'HH:mm"),
     });
 
-    // Holds { [enrollmentId]: "PRESENT" | "ABSENT" | "EXCUSED" | "SICK" }
+    // Holds { [enrollmentId]: "PRESENT" | "ABSENT" | "EXCUSED" }
     const [attendanceRecords, setAttendanceRecords] = useState<Record<string, string>>(
-        initialData ? { [initialData.enrollmentId]: initialData.status } : {}
+        initialData ? { [initialData.enrollmentId]: initialData.status === 'SICK' ? 'EXCUSED' : initialData.status } : {}
     );
 
     const handleClassChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -219,8 +219,7 @@ export default function AttendanceForm({ enrollments, initialData, isEdit = fals
                                                     <option value="" disabled>선택해주세요</option>
                                                     <option value="PRESENT">✅ 출석</option>
                                                     <option value="ABSENT">❌ 결석 (무단)</option>
-                                                    <option value="EXCUSED">➖ 공결</option>
-                                                    <option value="SICK">🏥 병결</option>
+                                                    <option value="EXCUSED">➖ 공결(병결)</option>
                                                 </select>
                                             </td>
                                         </tr>

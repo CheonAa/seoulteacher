@@ -172,7 +172,7 @@ export default function AttendanceRoster({
                                                     <span className={`px-2.5 py-1 inline-flex text-xs font-bold rounded-md ${att.status === 'PRESENT' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
                                                         att.status === 'ABSENT' ? 'bg-red-100 text-red-800 border border-red-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
                                                         }`}>
-                                                        {att.status === 'PRESENT' ? '✅ 출석' : att.status === 'ABSENT' ? '❌ 결석 (무단)' : att.status === 'EXCUSED' ? '➖ 공결' : '🏥 병결'}
+                                                        {att.status === 'PRESENT' ? '✅ 출석' : att.status === 'ABSENT' ? '❌ 결석 (무단)' : '➖ 공결(병결)'}
                                                     </span>
                                                 </td>
                                                 <td className="px-5 py-3.5 whitespace-nowrap text-sm text-slate-600 font-medium">
