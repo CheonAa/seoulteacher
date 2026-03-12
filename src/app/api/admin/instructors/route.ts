@@ -12,7 +12,7 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { name, email, password, baseRate, insuranceFee, bankAccountVND, bankAccountKRW } = body;
+        const { name, email, password, baseRate, insuranceFee, bankAccountVND, bankAccountKRW, color } = body;
 
         if (!name || !email || !password || !baseRate) {
             return NextResponse.json({ error: '필수 항목을 모두 입력해주세요.' }, { status: 400 });
@@ -43,6 +43,7 @@ export async function POST(req: Request) {
                     password: hashedPassword,
                     role: 'INSTRUCTOR',
                     creatorId,
+                    color: color || '#e2e8f0', // Default color if not provided
                 }
             });
 

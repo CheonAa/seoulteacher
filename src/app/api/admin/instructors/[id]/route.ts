@@ -44,7 +44,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         }
 
         const body = await req.json();
-        const { name, email, password, baseRate, insuranceFee, bankAccountVND, bankAccountKRW } = body;
+        const { name, email, password, baseRate, insuranceFee, bankAccountVND, bankAccountKRW, color } = body;
 
         const currentUser = await prisma.user.findUnique({ where: { email: session.user.email } });
 
@@ -78,6 +78,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 email,
             };
 
+            if (color) {
+                userData.color = color;
+            }
+
             if (password && password.trim() !== '') {
                 userData.password = await bcrypt.hash(password, 10);
             }
@@ -104,6 +108,14 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                     bankAccountKRW: bankAccountKRW || null,
                 }
             });
+
+            // Trigger Shuffle Schedule Color Sync
+            if (color) {
+                await tx.shuttleSchedule.updateMany({
+                    where: { instructorId: id },
+                    data: { color: color }
+                });
+            }
         });
 
         return NextResponse.json({ message: '강사 정보 수정 완료' });

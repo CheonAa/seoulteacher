@@ -13,11 +13,19 @@ export default function InstructorForm({ initialData, isEdit = false }: { initia
         name: initialData?.name || "",
         email: initialData?.email || "",
         password: "", // 항상 빈 칸 (수정일 땐 입력시에만 변경)
+        color: initialData?.color || "#e2e8f0",
         baseRate: initialData?.instructorProfile?.baseRate ? String(initialData.instructorProfile.baseRate * 100) : "65",
         insuranceFee: initialData?.instructorProfile?.insuranceFee ? String(initialData.instructorProfile.insuranceFee) : "0",
         bankAccountVND: initialData?.instructorProfile?.bankAccountVND || "",
         bankAccountKRW: initialData?.instructorProfile?.bankAccountKRW || "",
     });
+
+    const PRESET_COLORS = [
+        '#e2e8f0', // slate-200 (Default)
+        '#fecaca', '#fef08a', '#bbf7d0', '#bfdbfe', '#e9d5ff', '#fbcfe8',
+        '#f87171', '#fbbf24', '#4ade80', '#60a5fa', '#c084fc', '#f472b6',
+        '#b91c1c', '#b45309', '#15803d', '#1d4ed8', '#7e22ce', '#be185d'
+    ];
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -97,6 +105,38 @@ export default function InstructorForm({ initialData, isEdit = false }: { initia
                             className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             placeholder="*************"
                         />
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h3 className="text-lg font-medium text-slate-900 border-b border-slate-200 pb-2 mb-4">
+                    시스템 테마 색상 (차량 및 대시보드 표기용)
+                </h3>
+                <div className="bg-slate-50 p-4 rounded-md border border-slate-200">
+                    <div className="flex flex-wrap gap-2 items-center">
+                        {PRESET_COLORS.map(color => (
+                            <button
+                                key={color}
+                                type="button"
+                                style={{ backgroundColor: color }}
+                                onClick={() => setFormData(prev => ({ ...prev, color }))}
+                                className={`w-8 h-8 rounded-full border-2 transition-transform ${
+                                    formData.color === color ? 'border-blue-600 scale-110 shadow-md' : 'border-transparent hover:scale-105'
+                                }`}
+                                title={color}
+                            />
+                        ))}
+                        <div className="ml-4 flex items-center gap-2">
+                            <span className="text-sm text-slate-500">직접 입력:</span>
+                            <input
+                                type="color"
+                                name="color"
+                                value={formData.color}
+                                onChange={handleChange}
+                                className="w-8 h-8 p-0 border-0 rounded"
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
