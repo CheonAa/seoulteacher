@@ -159,12 +159,12 @@ export default function AttendanceForm({ enrollments, initialData, isEdit = fals
                         type="datetime-local"
                         name="date"
                         required
-                        step="1800"
+                        step="600"
                         value={formData.date}
                         onChange={handleChange}
                         className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
-                    <p className="mt-1 text-xs text-slate-500">30분 단위로 시간이 조절됩니다.</p>
+                    <p className="mt-1 text-xs text-slate-500">10분 단위로 선택할 수 있습니다.</p>
                 </div>
             </div>
 
