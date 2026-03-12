@@ -110,7 +110,7 @@ export default function DashboardShuttleSchedule() {
     if (!selectedDay) return null;
 
     return (
-        <div className="bg-white shadow rounded-lg border border-slate-200 overflow-hidden flex flex-col h-full print:shadow-none print:border-none print:bg-transparent">
+        <div className="bg-white shadow rounded-lg border border-slate-200 overflow-hidden flex flex-col h-full print:shadow-none print:border-none print:bg-transparent print:h-auto print:block print:overflow-visible">
             {/* Header controls - Hidden in print */}
             <div className="px-4 py-5 sm:px-6 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50 print:hidden">
                 <div className="flex items-center gap-2">
@@ -156,7 +156,7 @@ export default function DashboardShuttleSchedule() {
                 <style dangerouslySetInnerHTML={{ __html: `@page { size: A4 landscape; margin: 10mm; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }` }} />
             </div>
 
-            <div className="p-4 sm:p-6 flex-1 overflow-y-auto print:p-0 print:overflow-visible">
+            <div className="p-4 sm:p-6 flex-1 overflow-y-auto print:p-0 print:overflow-visible print:h-auto print:block">
                 {loading ? (
                     <div className="flex flex-col items-center justify-center space-y-4 py-12 text-slate-500 print:hidden">
                         <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>

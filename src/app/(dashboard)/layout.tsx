@@ -68,7 +68,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const filteredNav = navigation.filter(item => item.roles.includes(role));
 
     return (
-        <div className="flex h-screen bg-slate-50">
+        <div className="flex h-screen bg-slate-50 print:h-auto print:block">
             {/* Mobile sidebar backdrop */}
             {isSidebarOpen && (
                 <div
@@ -80,6 +80,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* Sidebar */}
             <div
                 className={clsx(
+                    "print:hidden",
                     "fixed inset-y-0 left-0 z-30 w-64 bg-blue-900 text-white transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
                     isSidebarOpen ? "translate-x-0" : "-translate-x-full"
                 )}
@@ -116,9 +117,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <div className="flex-1 flex flex-col min-w-0 overflow-hidden print:block print:overflow-visible">
                 {/* Header */}
-                <header className="bg-white shadow-sm border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8">
+                <header className="print:hidden bg-white shadow-sm border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8">
                     <button
                         className="text-slate-500 hover:text-slate-700 lg:hidden"
                         onClick={() => setIsSidebarOpen(true)}
@@ -146,7 +147,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </header>
 
                 {/* Main Body */}
-                <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+                <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 print:p-0 print:overflow-visible print:block print:h-auto">
                     {children}
                 </main>
             </div>

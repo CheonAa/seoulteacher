@@ -13,14 +13,14 @@ export default async function OwnerDashboard() {
     const activeInstructors = await prisma.user.count({ where: { role: "INSTRUCTOR" } });
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
+        <div className="space-y-6 print:space-y-0">
+            <div className="flex items-center justify-between print:hidden">
                 <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                     대표자(Owner) 대시보드
                 </h1>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 print:hidden">
                 {/* KPI Cards */}
                 <div className="bg-white overflow-hidden shadow rounded-lg border border-slate-200">
                     <div className="p-5">
@@ -70,7 +70,7 @@ export default async function OwnerDashboard() {
             </div>
 
             {/* Quick Summary Section */}
-            <div className="bg-white shadow rounded-lg border border-slate-200 overflow-hidden">
+            <div className="bg-white shadow rounded-lg border border-slate-200 overflow-hidden print:hidden">
                 <div className="px-4 py-5 sm:px-6 border-b border-slate-200">
                     <h3 className="text-lg leading-6 font-medium text-slate-900">시스템 환영 메시지</h3>
                 </div>
@@ -81,7 +81,7 @@ export default async function OwnerDashboard() {
             </div>
 
             {/* Shuttle Schedule Section */}
-            <div className="h-[600px]">
+            <div className="h-[600px] print:h-auto print:block">
                 <DashboardShuttleSchedule />
             </div>
         </div>
