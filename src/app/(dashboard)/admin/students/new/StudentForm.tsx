@@ -495,7 +495,7 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                                 className="block w-full bg-white text-slate-900 border border-slate-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             >
                                 {enrollments.map((enr, i) => (
-                                    <option key={i} value={i}>수강 정보 {i + 1} ({enr.subjectName || "미지원 과목"})</option>
+                                    <option key={i} value={i}>수강 정보 {i + 1} ({enr.subjectName || "과목명 미지정 (아래 수강 등록 정보에서 과목명을 입력해주세요)"})</option>
                                 ))}
                             </select>
                         </div>
