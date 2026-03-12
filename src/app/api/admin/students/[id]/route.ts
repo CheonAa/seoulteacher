@@ -54,7 +54,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
         const student = await prisma.student.findUnique({
             where: { id },
-            select: { creatorId: true }
+            select: { name: true, creatorId: true }
         });
 
         if (!student) {
@@ -86,7 +86,22 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
             return NextResponse.json({ error: '필수 항목을 모두 입력해주세요.' }, { status: 400 });
         }
 
-        // 트랜잭션으로 학생, 부모, 그리고 수강 이력 전체 수정
+        // 차량 시간표 (ShuttleSchedule) 이름 동기화 로직 준비
+        const oldName = student.name;
+        const nameChanged = oldName !== name;
+        let affectedSchedules: any[] = [];
+        
+        if (nameChanged) {
+            affectedSchedules = await prisma.shuttleSchedule.findMany({
+                where: {
+                    students: {
+                        contains: oldName
+                    }
+                }
+            });
+        }
+
+        // 트랜잭션으로 학생, 부모, 그리고 수강 이력 및 차량 시간표 전체 수정
         await prisma.$transaction(async (tx) => {
             // 1. 학생 기본 정보 업데이트
             const updatedStudent = await tx.student.update({
@@ -162,6 +177,23 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 }
             }
 
+            // 4. 차량 시간표 이름 텍스트 교체 (이름이 변경되었을 경우만)
+            if (nameChanged && affectedSchedules.length > 0) {
+                for (const schedule of affectedSchedules) {
+                    if (!schedule.students) continue;
+
+                    // "홍길동, 김철수, 박영희" 같은 구조에서 정확히 이전 이름만 새 이름으로 교체
+                    const studentArray = schedule.students.split(',').map((s: string) => s.trim());
+                    const updatedArray = studentArray.map((s: string) => s === oldName ? name.trim() : s);
+                    const newStudentsString = updatedArray.filter(Boolean).join(', ');
+
+                    await tx.shuttleSchedule.update({
+                        where: { id: schedule.id },
+                        data: { students: newStudentsString }
+                    });
+                }
+            }
+
             return updatedStudent;
         });
 
@@ -193,7 +225,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
         const student = await prisma.student.findUnique({
             where: { id },
-            select: { creatorId: true }
+            select: { name: true, creatorId: true }
         });
 
         if (!student) {
@@ -205,8 +237,36 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
             return NextResponse.json({ error: '본인이 등록한 학생만 삭제할 수 있습니다.' }, { status: 403 });
         }
 
-        await prisma.student.delete({
-            where: { id }
+        // 차량 시간표 (ShuttleSchedule) 이름 삭제 동기화 로직 준비
+        const affectedSchedules = await prisma.shuttleSchedule.findMany({
+            where: {
+                students: {
+                    contains: student.name
+                }
+            }
+        });
+
+        // 트랜잭션으로 차량 시간표 이름에서 학생 제외 처리 및 학생 레코드 삭제
+        await prisma.$transaction(async (tx) => {
+            if (affectedSchedules.length > 0) {
+                for (const schedule of affectedSchedules) {
+                    if (!schedule.students) continue;
+
+                    const studentArray = schedule.students.split(',').map((s: string) => s.trim());
+                    // 기존 이름 제거
+                    const updatedArray = studentArray.filter((s: string) => s !== student.name);
+                    const newStudentsString = updatedArray.filter(Boolean).join(', ') || null;
+
+                    await tx.shuttleSchedule.update({
+                        where: { id: schedule.id },
+                        data: { students: newStudentsString }
+                    });
+                }
+            }
+
+            await tx.student.delete({
+                where: { id }
+            });
         });
 
         return NextResponse.json({ message: '학생이 삭제되었습니다.' });
