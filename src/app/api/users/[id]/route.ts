@@ -85,8 +85,14 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
         });
 
         return NextResponse.json({ message: "사용자가 삭제되었습니다." }, { status: 200 });
-    } catch (error) {
+    } catch (error: any) {
         console.error("DELETE User Error:", error);
+        
+        // Handle foreign key constraint violations
+        if (error.code === 'P2003') {
+             return NextResponse.json({ error: "해당 사용자가 담당 중인 수강 정보나 차량 스케줄 등 연결된 데이터가 있어 삭제할 수 없습니다." }, { status: 400 });
+        }
+        
         return NextResponse.json({ error: "사용자 삭제에 실패했습니다." }, { status: 500 });
     }
 }
