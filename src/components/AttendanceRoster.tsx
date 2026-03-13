@@ -235,7 +235,7 @@ export default function AttendanceRoster({
                                 <table className="min-w-full divide-y divide-slate-200 table-fixed">
                                     <thead className="bg-slate-50/80">
                                         <tr>
-                                            <th rowSpan={2} className="px-3 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider border-r border-slate-200 w-[12%] bg-slate-100/50 align-middle">
+                                            <th rowSpan={2} className="px-3 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider border-r border-slate-200 w-[12%] bg-slate-100 align-middle sticky left-0 z-20 shadow-[1px_0_0_0_#e2e8f0]">
                                                 학생 이름
                                             </th>
                                             <th rowSpan={2} className="px-2 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider border-r border-slate-200 w-[10%] bg-slate-100/50 align-middle">
@@ -271,9 +271,9 @@ export default function AttendanceRoster({
                                             const isGoalReached = attended >= target && target > 0;
 
                                             return (
-                                                <tr key={studentMatrix.enrollment.student.id} className="hover:bg-blue-50/20 transition-colors">
+                                                <tr key={studentMatrix.enrollment.student.id} className="group hover:bg-blue-50/20 transition-colors">
                                                     {/* Student Name */}
-                                                    <td className="px-3 py-3 text-sm font-semibold text-slate-800 border-r border-slate-100 text-center whitespace-nowrap">
+                                                    <td className="px-3 py-3 text-sm font-semibold text-slate-800 border-r border-slate-100 text-center whitespace-nowrap sticky left-0 z-10 bg-white group-hover:bg-[#f4f8ff] shadow-[1px_0_0_0_#f1f5f9] transition-colors">
                                                         {studentMatrix.enrollment.student.name}
                                                     </td>
                                                     
