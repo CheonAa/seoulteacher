@@ -109,8 +109,7 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
         }
 
         if (fee > 0) {
-            const rawSessionFee = fee / sessions;
-            return Math.floor(rawSessionFee / 1000) * 1000;
+            return fee;
         }
         return 0; // Or keep manual fee if calculation doesn't match predefined rules
     };
@@ -132,10 +131,11 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
             
             // Try to auto-calculate the fee with updated fields
             if (['curriculum', 'period', 'gradeGroup', 'targetSessionsMonth'].includes(field) || field === 'curriculum') {
-                const sessions = Number(targetEnr.targetSessionsMonth);
-                const calcFeePerSession = calculateFee(targetEnr.curriculum, targetEnr.period, targetEnr.gradeGroup, sessions);
-                if (calcFeePerSession > 0) {
-                     targetEnr.feePerSession = String(calcFeePerSession);
+                const sessions = Number(targetEnr.targetSessionsMonth) || 1;
+                const totalFee = calculateFee(targetEnr.curriculum, targetEnr.period, targetEnr.gradeGroup, sessions);
+                if (totalFee > 0) {
+                     // 총 금액에서 나누어 제시하되 천 단위 절삭 없이 정확히 할당
+                     targetEnr.feePerSession = String(Math.round(totalFee / sessions));
                 }
             }
             
@@ -201,7 +201,7 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                 curriculum: enr.curriculum,
                 period: enr.period,
                 gradeGroup: enr.gradeGroup,
-                feePerSession: Math.floor(Number(enr.feePerSession) / 1000) * 1000,
+                feePerSession: Math.round(Number(enr.feePerSession)),
                 targetSessionsMonth: Number(enr.targetSessionsMonth),
                 depositorName: enr.depositorName || null,
                 status: enr.status,
@@ -501,12 +501,12 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                                         name="feePerSession"
                                         required
                                         min="0"
-                                        step="1000"
                                         value={enr.feePerSession}
                                         onChange={(e) => handleEnrollmentChange(index, "feePerSession", e.target.value)}
                                         className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                         placeholder="1562000"
                                     />
+                                    <p className="mt-1 text-xs text-slate-500">총 수강료에서 횟수를 나눈 정확한 금액이 입력됩니다.</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700">시작 일자</label>
@@ -719,12 +719,17 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                                 {enrollments.map((enr, i) => {
                                     const sessionCount = Number(enr.targetSessionsMonth) || 0;
                                     const feePerSession = Number(enr.feePerSession) || 0;
-                                    // Total subject fee is just count * session fee, since the feePerSession is calculated already.
-                                    // EXCEPT for international vacation that has a lump sum and then sessions, but the calculateFee logic embeds that into feePerSession.
-                                    // Actually, let's recalculate the exact sum based on `calculateFee` for accuracy to rules, or just multiply.
-                                    // The user requested `수강료` column to be there. We will multiply `1회차 * 횟수` because `calculateFee` does exactly this in reverse (divides total / sessions to get per session).
-                                    // Wait, calculateFee does `rawSessionFee = fee / sessions`, and then we floor it `Math.floor(rawSessionFee / 1000) * 1000`. So multiplying back will be ALMOST the original fee. Let's just multiply feePerSession * count to match what parents actually pay per session.
-                                    const subjectTotal = feePerSession * sessionCount;
+                                    
+                                    // Calculate exact total fee to show instead of multiplying rounded session fee by count
+                                    const exactCalculatedFee = calculateFee(enr.curriculum, enr.period, enr.gradeGroup, sessionCount);
+                                    
+                                    // If user hasn't edited the fee per session manually, show the exact calculated fee
+                                    // We can just multiply if they did. But let's assume total tuition = feePerSession * count is mostly fine 
+                                    // if we don't truncate thousands. However, to be 100% accurate without 1 VND rounding errors:
+                                    const expectedSessionFee = Math.round(exactCalculatedFee / sessionCount);
+                                    const subjectTotal = (feePerSession === expectedSessionFee && exactCalculatedFee > 0) 
+                                        ? exactCalculatedFee 
+                                        : (feePerSession * sessionCount);
                                     
                                     const periodLabel = enr.period === 'SEMESTER' ? '학기 중' : '방학 특강';
                                     const gradeLabel = enr.curriculum === 'KOREAN' 
@@ -751,7 +756,18 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                                         총 수강료 합계: 
                                     </td>
                                     <td className="px-3 py-3 text-right text-xl font-bold text-blue-700">
-                                        {enrollments.reduce((acc, enr) => acc + ((Number(enr.feePerSession) || 0) * (Number(enr.targetSessionsMonth) || 0)), 0).toLocaleString()} VND
+                                        {enrollments.reduce((acc, enr) => {
+                                            const sessionCount = Number(enr.targetSessionsMonth) || 0;
+                                            const feePerSession = Number(enr.feePerSession) || 0;
+                                            const exactCalculatedFee = calculateFee(enr.curriculum, enr.period, enr.gradeGroup, sessionCount);
+                                            const expectedSessionFee = Math.round(exactCalculatedFee / sessionCount);
+                                            
+                                            const subjectTotal = (feePerSession === expectedSessionFee && exactCalculatedFee > 0) 
+                                                ? exactCalculatedFee 
+                                                : (feePerSession * sessionCount);
+                                                
+                                            return acc + subjectTotal;
+                                        }, 0).toLocaleString()} VND
                                     </td>
                                 </tr>
                             </tfoot>
