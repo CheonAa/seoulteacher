@@ -154,8 +154,8 @@ export default function OwnerPayrollPage() {
                 head: [tableColumn],
                 body: tableRows,
                 startY: 36,
-                styles: { font: "NanumGothic", fontSize: 9, halign: 'right' },
-                headStyles: { fillColor: [41, 128, 185], textColor: 255, halign: 'center' },
+                styles: { font: "NanumGothic", fontStyle: "normal", fontSize: 9, halign: 'right' },
+                headStyles: { fillColor: [41, 128, 185], textColor: 255, halign: 'center', fontStyle: "normal" },
                 columnStyles: { 0: { halign: 'left' } }, // Instructor name aligned left
                 theme: 'grid'
             });
