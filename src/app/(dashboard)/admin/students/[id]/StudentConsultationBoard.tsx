@@ -137,7 +137,7 @@ export default function StudentConsultationBoard({ studentId, currentUserId, cur
                         <button 
                             type="submit"
                             disabled={isSubmitting || !newContent.trim()}
-                            className="bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm py-2 px-4 rounded-md shadow-sm mt-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm py-2 px-4 rounded-md shadow-sm mt-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             <SaveIcon className="w-4 h-4" /> {isSubmitting ? "저장 중..." : "상담 기록 저장"}
                         </button>

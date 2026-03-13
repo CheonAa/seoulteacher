@@ -52,14 +52,16 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
                         <p className="text-slate-500 mt-1 text-sm">학생의 기본 정보, 수강 내역 및 상담 기록을 확인합니다.</p>
                     </div>
                 </div>
-                {(session.user.role === 'OWNER' || session.user.role === 'ADMIN' || student.creatorId === session.user.id || student.enrollments.some(e => e.instructor.name && e.instructor.name === session.user.name)) && (
-                    <Link 
-                        href={`/admin/students/${student.id}/edit`}
-                        className="bg-white px-4 py-2 border border-slate-300 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-50 shadow-sm transition-colors"
-                    >
-                        정보 수정
-                    </Link>
-                )}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
+                    {(session.user.role === 'OWNER' || session.user.role === 'ADMIN' || student.creatorId === session.user.id || student.enrollments.some(e => e.instructor.name && e.instructor.name === session.user.name)) && (
+                        <Link 
+                            href={`/admin/students/${student.id}/edit`}
+                            className="bg-white w-full sm:w-auto text-center px-4 py-2 border border-slate-300 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-50 shadow-sm transition-colors"
+                        >
+                            정보 수정
+                        </Link>
+                    )}
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

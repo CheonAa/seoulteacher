@@ -328,14 +328,14 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
 
             {/* 1. 수강 등록 정보 (Enrollment) - Moved to TOP */}
             <div>
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2 mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-2 mb-4 gap-2">
                     <h3 className="text-lg font-medium text-slate-900">
                         수강 등록 정보 (Enrollment)
                     </h3>
                     <button
                         type="button"
                         onClick={addEnrollment}
-                        className="text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1 rounded-md font-medium transition-colors"
+                        className="w-full sm:w-auto text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-2 sm:py-1 rounded-md font-medium transition-colors flex justify-center items-center"
                     >
                         <Plus className="w-4 h-4 inline-block mr-1" />
                         수강 과목 추가
@@ -354,8 +354,8 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                                     <Trash2 className="w-5 h-5" />
                                 </button>
                             )}
-                            <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-200">
-                                <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 pb-2 border-b border-slate-200 gap-2 sm:gap-0">
+                                <h4 className="text-sm font-semibold text-slate-700 flex flex-wrap items-center gap-2">
                                     수강 정보 {index + 1}
                                     {enr.status === 'PAUSED' && (
                                         <span className="px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 border border-amber-200 text-amber-800">
@@ -368,12 +368,12 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                                         </span>
                                     )}
                                 </h4>
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
                                     {enr.id && enr.status === 'ACTIVE' && isEdit && (
                                          <button
                                             type="button"
                                             onClick={() => handleTransition(index)}
-                                            className="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded transition-colors"
+                                            className="w-full sm:w-auto justify-center inline-flex items-center px-2.5 py-2 sm:py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded transition-colors"
                                             title="해당 수강을 일시 중단하고 이월 회차를 새 특강으로 넘깁니다"
                                          >
                                             <ArrowRightLeft className="w-3.5 h-3.5 mr-1" /> 특강 전환
@@ -383,7 +383,7 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                                          <button
                                             type="button"
                                             onClick={() => handleResume(index)}
-                                            className="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded transition-colors"
+                                            className="w-full sm:w-auto justify-center inline-flex items-center px-2.5 py-2 sm:py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded transition-colors"
                                             title="특강을 종료하고 해당 수강을 재개합니다"
                                          >
                                             <PlayCircle className="w-3.5 h-3.5 mr-1" /> 수강 재개
@@ -631,16 +631,16 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
 
             {/* 3. 학부모 정보 - Moved to Middle */}
             <div>
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2 mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-2 mb-4 gap-2">
                     <h3 className="text-lg font-medium text-slate-900">
                         학부모 정보 (Parents)
                     </h3>
                     <button
                         type="button"
                         onClick={addParent}
-                        className="text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1 rounded-md font-medium transition-colors"
+                        className="w-full sm:w-auto text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 flex justify-center items-center px-3 py-2 sm:py-1 rounded-md font-medium transition-colors"
                     >
-                        + 학부모 추가
+                        <Plus className="w-4 h-4 inline-block mr-1" /> 학부모 추가
                     </button>
                 </div>
 
@@ -684,7 +684,7 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                                 <button
                                     type="button"
                                     onClick={() => removeParent(index)}
-                                    className="mb-1 text-red-500 hover:text-red-700 font-medium text-sm p-2 bg-white border border-red-200 rounded-md whitespace-nowrap"
+                                    className="w-full sm:w-auto flex justify-center sm:mb-1 text-red-500 hover:text-red-700 hover:bg-red-50 font-medium text-sm p-2 sm:px-3 bg-white border border-red-200 rounded-md whitespace-nowrap transition-colors"
                                 >
                                     삭제
                                 </button>
@@ -776,18 +776,18 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                 </div>
             </div>
 
-            <div className="flex items-center justify-end space-x-3 pt-6 border-t border-slate-200">
+            <div className="flex flex-col-reverse sm:flex-row items-center sm:justify-end gap-3 pt-6 border-t border-slate-200">
                 <button
                     type="button"
                     onClick={() => router.back()}
-                    className="px-4 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                    className="w-full sm:w-auto px-4 py-2 sm:py-2.5 border border-slate-300 shadow-sm text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                 >
                     취소
                 </button>
                 <button
                     type="submit"
                     disabled={loading}
-                    className="inline-flex justify-center items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50"
+                    className="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 sm:py-2.5 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50"
                 >
                     {loading ? (
                         <>처리 중...</>
