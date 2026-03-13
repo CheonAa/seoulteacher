@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { markAsPaid } from '../actions';
+import { format } from 'date-fns';
 import { CheckCircle } from 'lucide-react';
 
 export default function BillingTable({ billings }: { billings: any[] }) {
@@ -70,7 +71,9 @@ export default function BillingTable({ billings }: { billings: any[] }) {
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 {billing.isPaid ? (
                                     <span className="inline-flex items-center text-green-600 font-medium">
-                                        <CheckCircle className="w-4 h-4 mr-1" /> 납부완료
+                                        <CheckCircle className="w-4 h-4 mr-1" /> 
+                                        납부완료 
+                                        {billing.paidAt && <span className="text-xs ml-1 text-green-500">({format(new Date(billing.paidAt), 'yy/MM/dd')})</span>}
                                     </span>
                                 ) : (
                                     <button
