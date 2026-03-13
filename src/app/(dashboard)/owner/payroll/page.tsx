@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Save, CalendarDays, RefreshCw, FileText } from "lucide-react";
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import { NanumGothicBase64 } from "@/lib/fonts/NanumGothic-Regular";
 
 type PayrollData = {
@@ -150,7 +150,7 @@ export default function OwnerPayrollPage() {
                 ]);
             });
 
-            (doc as any).autoTable({
+            autoTable(doc, {
                 head: [tableColumn],
                 body: tableRows,
                 startY: 36,
