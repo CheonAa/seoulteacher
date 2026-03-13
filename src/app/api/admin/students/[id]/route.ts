@@ -151,6 +151,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                     const enrData = {
                         instructorId: enr.instructorId,
                         subjectName: enr.subjectName,
+                        curriculum: enr.curriculum || "KOREAN",
+                        period: enr.period || "SEMESTER",
+                        gradeGroup: enr.gradeGroup || "ELEM",
                         feePerSession: Number(enr.feePerSession),
                         targetSessionsMonth: Number(enr.targetSessionsMonth),
                         depositorName: enr.depositorName || null,

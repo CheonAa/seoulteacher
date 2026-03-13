@@ -76,6 +76,9 @@ model Enrollment {
   instructor   User    @relation(fields: [instructorId], references: [id])
 
   subjectName         String // 수강과목 (ex. 인터수학)
+  curriculum          String? @default("KOREAN") // KOREAN, INTERNATIONAL
+  period              String? @default("SEMESTER") // SEMESTER, VACATION
+  gradeGroup          String? @default("ELEM") // ELEM, MID, HIGH, G7_9, G10_12
   feePerSession       Int // 1회차 수강료
   targetSessionsMonth Int     @default(8) // 월 목표 횟수 (보통 8회)
   depositorName       String? // 입금자명 (학부모 또는 본인 등)

@@ -15,7 +15,7 @@ export default async function NewStudentPage() {
     const role = session.user.role as string;
 
     // Fetch instructors for the dropdown
-    let instructorWhereClause: any = { role: 'INSTRUCTOR' };
+    const instructorWhereClause: any = { role: 'INSTRUCTOR' };
 
     // 강사일 경우 본인만 선택 가능하도록 필터링
     if (role === 'INSTRUCTOR') {

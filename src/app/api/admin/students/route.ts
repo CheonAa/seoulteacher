@@ -63,6 +63,9 @@ export async function POST(req: Request) {
                         create: enrollments.map((enr: any) => ({
                             instructorId: enr.instructorId,
                             subjectName: enr.subjectName,
+                            curriculum: enr.curriculum || "KOREAN",
+                            period: enr.period || "SEMESTER",
+                            gradeGroup: enr.gradeGroup || "ELEM",
                             feePerSession: Number(enr.feePerSession),
                             targetSessionsMonth: Number(enr.targetSessionsMonth),
                             depositorName: enr.depositorName || null,

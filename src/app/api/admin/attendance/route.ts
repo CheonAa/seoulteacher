@@ -64,7 +64,7 @@ export async function POST(req: Request) {
 
                 // 출석(PRESENT)인 경우에만 카운트 차감/업데이트
                 if (record.status === 'PRESENT') {
-                    let billing = await tx.monthlyBilling.findFirst({
+                    const billing = await tx.monthlyBilling.findFirst({
                         where: {
                             enrollmentId: enrollment.id,
                             year: targetYear,
