@@ -136,9 +136,11 @@ export default function StudentTable({ initialStudents, instructors, currentUser
                     const workbook = xlsx.read(bstr, { type: "binary" });
                     const sheetName = workbook.SheetNames[0];
                     const sheet = workbook.Sheets[sheetName];
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const data = xlsx.utils.sheet_to_json<any>(sheet);
 
                     // Group by exact student name (and phone if helpful)
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const studentMap = new Map<string, any>();
 
                     for (const row of data) {
@@ -195,6 +197,7 @@ export default function StudentTable({ initialStudents, instructors, currentUser
 
                     alert(`${payload.length}명의 학생이 성공적으로 일괄 등록되었습니다.`);
                     router.refresh();
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } catch (err: any) {
                     alert("파일 처리 중 오류: " + err.message);
                 } finally {
@@ -203,6 +206,7 @@ export default function StudentTable({ initialStudents, instructors, currentUser
                 }
             };
             reader.readAsBinaryString(file);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             alert("파일 읽기 오류: " + err.message);
             setIsUploading(false);
