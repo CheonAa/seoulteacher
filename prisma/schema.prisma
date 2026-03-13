@@ -58,6 +58,7 @@ model Student {
 
   enrollments Enrollment[]
   parents     Parent[] // 학생 1명당 여러 학부모 정보 등록 가능
+  consultations Consultation[]
 
   shuttleStatus   String? @default("NOT_BOARDING") // BOARDING, NOT_BOARDING
   shuttleLocation String? // 차량 탑승지 (ex: Royal City R5)
@@ -216,6 +217,19 @@ model NoticeAttachment {
   
   notice    Notice   @relation(fields: [noticeId], references: [id], onDelete: Cascade)
   
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Consultation {
+  id        String   @id @default(uuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  date      DateTime @default(now()) // 상담 진행 날짜
+  content   String   @db.Text // 상담 내용 (HTML 가능)
+  creatorId String   // 작성자 ID (User.id)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

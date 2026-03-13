@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, QrCode, X, Edit2, Trash2, AlertTriangle } from "lucide-react";
+import { Search, QrCode, X, Edit2, Trash2, AlertTriangle, User } from "lucide-react";
 import QRCode from "qrcode";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -276,7 +276,9 @@ export default function StudentTable({ initialStudents, instructors, currentUser
                             filteredStudents.map((student) => (
                                 <tr key={student.id} className="hover:bg-slate-50 transition-colors">
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-slate-900">{student.name}</div>
+                                        <Link href={`/admin/students/${student.id}`} className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors block">
+                                            {student.name}
+                                        </Link>
                                         <div className="text-xs text-slate-400 mt-1 font-mono" title="QR Token Prefix">{student.qrToken.split('-')[0]}***</div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
@@ -312,12 +314,19 @@ export default function StudentTable({ initialStudents, instructors, currentUser
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-center">
                                         <div className="flex items-center justify-center space-x-2">
+                                            <Link
+                                                href={`/admin/students/${student.id}`}
+                                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                title="상세 보기"
+                                            >
+                                                <User className="w-4 h-4" />
+                                            </Link>
                                             <button
                                                 onClick={() => setSelectedQrStudent(student)}
                                                 className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                 title="출결 QR 코드 보기"
                                             >
-                                                <QrCode className="w-5 h-5" />
+                                                <QrCode className="w-4 h-4" />
                                             </button>
                                             {(currentUserRole === 'OWNER' || student.creatorId === currentUserId) && (
                                                 <Link
