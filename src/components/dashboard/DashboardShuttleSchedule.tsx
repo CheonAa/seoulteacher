@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Bus, Clock } from "lucide-react";
 import clsx from "clsx";
+import Link from "next/link";
 
 type ScheduleItem = {
     id: string;
@@ -123,24 +124,38 @@ export default function DashboardShuttleSchedule() {
         return `${m}/${d}/${korDay}`;
     };
 
+    const getTargetDateParam = () => {
+        if (!selectedDay) return "";
+        const today = new Date();
+        const mapping = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+        const todayIdx = today.getDay();
+        const selectedIdx = mapping.indexOf(selectedDay);
+        const diff = selectedIdx - todayIdx;
+        const targetDate = new Date(today);
+        targetDate.setDate(today.getDate() + diff);
+        const tzOffset = targetDate.getTimezoneOffset() * 60000;
+        return new Date(targetDate.getTime() - tzOffset).toISOString().split('T')[0];
+    };
+
     if (!selectedDay) return null;
 
     return (
-        <div className="bg-white shadow rounded-lg border border-slate-200 overflow-hidden flex flex-col h-full print:shadow-none print:border-none print:bg-transparent print:h-auto print:block print:overflow-visible">
-            {/* Header controls - Hidden in print */}
-            <div className="px-4 py-5 sm:px-6 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50 print:hidden">
+        <div className="bg-white shadow rounded-lg border border-slate-200 overflow-hidden flex flex-col h-full">
+            {/* Header controls */}
+            <div className="px-4 py-5 sm:px-6 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50">
                 <div className="flex items-center gap-2">
                     <Bus className="h-5 w-5 text-blue-600" />
                     <h3 className="text-lg leading-6 font-bold text-slate-900">오늘의 운행 시간표</h3>
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => window.print()}
-                        className="px-3 py-1.5 text-xs font-semibold rounded-md bg-slate-800 text-white hover:bg-slate-700 transition"
+                    <Link
+                        href={`/shuttles/print?date=${getTargetDateParam()}`}
+                        target="_blank"
+                        className="px-3 py-1.5 text-xs font-semibold rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-sm"
                     >
-                        인쇄 / PDF 저장
-                    </button>
+                        A형 가로 인쇄 (PDF 저장)
+                    </Link>
 
                     {/* Days Tab */}
                     <div className="flex overflow-x-auto pb-1 -mx-2 px-2 sm:pb-0 sm:mx-0 sm:px-0 scrollbar-hide">
@@ -164,52 +179,43 @@ export default function DashboardShuttleSchedule() {
                 </div>
             </div>
 
-            {/* Print Only Header */}
-            <div className="hidden print:block mb-4 text-center">
-                <h1 className="text-xl font-bold bg-slate-800 text-white py-2 rounded mb-2 print:text-black print:bg-slate-200">
-                    서울 학원 차량 시간표 ({getPrintDateString()})
-                </h1>
-                <style dangerouslySetInnerHTML={{ __html: `@page { size: A4 landscape; margin: 5mm; } @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; zoom: 0.85; } }` }} />
-            </div>
-
-            <div className="p-4 sm:p-6 flex-1 overflow-y-auto print:p-0 print:overflow-visible print:h-auto print:block">
+            <div className="p-4 sm:p-6 flex-1 overflow-y-auto">
                 {loading ? (
-                    <div className="flex flex-col items-center justify-center space-y-4 py-12 text-slate-500 print:hidden">
+                    <div className="flex flex-col items-center justify-center space-y-4 py-12 text-slate-500">
                         <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
                         <p>차량 시간표를 불러오는 중입니다...</p>
                     </div>
                 ) : vehicleKeys.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-center text-slate-500 bg-slate-50 rounded-lg border border-dashed border-slate-300 print:hidden">
+                    <div className="flex flex-col items-center justify-center py-16 text-center text-slate-500 bg-slate-50 rounded-lg border border-dashed border-slate-300">
                         <Bus className="h-10 w-10 text-slate-400 mb-3" />
                         <p className="font-medium text-slate-700">등록된 차량 운행 일정이 없습니다.</p>
                         <p className="text-sm mt-1">다른 요일을 선택하거나 관리자 페이지에서 일정을 등록해주세요.</p>
                     </div>
                 ) : (
-                    // On print, force grid to show all vehicles horizontally
-                    <div className="space-y-8 print:space-y-0 print:grid print:grid-cols-4 print:gap-2 print:items-start w-full">
+                    <div className="space-y-8 w-full">
                         {vehicleKeys.map(vehicle => {
                             const roundsData = vehiclesData[vehicle];
                             const rounds = Object.keys(roundsData).map(Number).sort((a, b) => a - b);
 
                             return (
-                                <div key={vehicle} className="border border-slate-200 rounded-xl overflow-hidden shadow-sm print:break-inside-avoid print:shadow-none print:border-slate-800 print:rounded-none bg-white">
-                                    <div className="bg-slate-100/80 px-4 py-2 border-b border-slate-200 text-center print:bg-slate-200 print:border-slate-800">
-                                        <h4 className="text-md font-bold text-blue-900 print:text-black">
+                                <div key={vehicle} className="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
+                                    <div className="bg-slate-100/80 px-4 py-2 border-b border-slate-200 text-center">
+                                        <h4 className="text-md font-bold text-blue-900">
                                             {vehicle}
                                         </h4>
                                     </div>
 
-                                    <div className="divide-y divide-slate-100 print:divide-slate-300">
+                                    <div className="divide-y divide-slate-100">
                                         {rounds.map((roundIdx) => {
                                             const round = roundsData[roundIdx];
                                             const groupedPickups = groupStops(round.pickUps);
                                             const groupedDropoffs = groupStops(round.dropOffs);
 
                                             return (
-                                                <div key={roundIdx} className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-1 print:divide-y print:divide-slate-300">
+                                                <div key={roundIdx} className="grid grid-cols-1 md:grid-cols-2">
                                                     {/* Pick Up Column */}
-                                                    <div className="p-3 md:border-r border-slate-100 print:border-none print:p-2 bg-white">
-                                                        <div className="text-xs font-bold text-slate-600 mb-2 border-b border-slate-200 pb-1 flex justify-between print:text-[10px] print:border-slate-300">
+                                                    <div className="p-3 md:border-r border-slate-100 bg-white">
+                                                        <div className="text-xs font-bold text-slate-600 mb-2 border-b border-slate-200 pb-1 flex justify-between">
                                                             <span>승차 (Pick-Up)</span>
                                                             <span className="text-slate-400 font-normal">Round {roundIdx}</span>
                                                         </div>
@@ -218,19 +224,19 @@ export default function DashboardShuttleSchedule() {
                                                         ) : (
                                                             <div className="space-y-2">
                                                                 {groupedPickups.map((group, idx) => (
-                                                                    <div key={idx} className="flex gap-2 items-start text-sm print:text-xs">
-                                                                        <div className="w-10 font-bold text-slate-700 mt-0.5 flex-shrink-0 print:text-black print:w-8">
+                                                                    <div key={idx} className="flex gap-2 items-start text-sm">
+                                                                        <div className="w-10 font-bold text-slate-700 mt-0.5 flex-shrink-0">
                                                                             {group.time}
                                                                         </div>
                                                                         <div className="flex-1 min-w-0">
-                                                                            <div className="font-medium text-slate-900 truncate print:text-black leading-tight">
+                                                                            <div className="font-medium text-slate-900 truncate leading-tight">
                                                                                 {group.locationName}
                                                                             </div>
                                                                             <div className="flex flex-wrap gap-1 mt-0.5">
                                                                                 {group.items.flatMap(i => i.students?.split(',').map(s => ({ name: s.trim(), color: getBgColor(i) }))).filter(s => !!s?.name).map((student, sIdx) => (
                                                                                     <span
                                                                                         key={sIdx}
-                                                                                        className="px-1 py-0.5 text-[0.6rem] font-bold text-slate-800 rounded shadow-sm border border-slate-200/50 print:border-black/20"
+                                                                                        className="px-1 py-0.5 text-[0.6rem] font-bold text-slate-800 rounded shadow-sm border border-slate-200/50"
                                                                                         style={{ backgroundColor: student?.color }}
                                                                                     >
                                                                                         {student?.name}
@@ -245,8 +251,8 @@ export default function DashboardShuttleSchedule() {
                                                     </div>
 
                                                     {/* Drop Off Column */}
-                                                    <div className="p-3 bg-slate-50/50 print:bg-white print:p-2">
-                                                        <div className="text-xs font-bold text-slate-700 mb-2 border-b border-slate-300 pb-1 flex justify-between print:text-[10px]">
+                                                    <div className="p-3 bg-slate-50/50">
+                                                        <div className="text-xs font-bold text-slate-700 mb-2 border-b border-slate-300 pb-1 flex justify-between">
                                                             <span>하차 (Drop-Off)</span>
                                                             <span className="text-slate-400 font-normal">Round {roundIdx}</span>
                                                         </div>
@@ -255,19 +261,19 @@ export default function DashboardShuttleSchedule() {
                                                         ) : (
                                                             <div className="space-y-2">
                                                                 {groupedDropoffs.map((group, idx) => (
-                                                                    <div key={idx} className="flex gap-2 items-start text-sm print:text-xs">
-                                                                        <div className="w-10 font-bold text-slate-700 mt-0.5 flex-shrink-0 print:text-black print:w-8">
+                                                                    <div key={idx} className="flex gap-2 items-start text-sm">
+                                                                        <div className="w-10 font-bold text-slate-700 mt-0.5 flex-shrink-0">
                                                                             {group.time}
                                                                         </div>
                                                                         <div className="flex-1 min-w-0">
-                                                                            <div className="font-medium text-slate-900 truncate print:text-black leading-tight">
+                                                                            <div className="font-medium text-slate-900 truncate leading-tight">
                                                                                 {group.locationName}
                                                                             </div>
                                                                             <div className="flex flex-wrap gap-1 mt-0.5">
                                                                                 {group.items.flatMap(i => i.students?.split(',').map(s => ({ name: s.trim(), color: getBgColor(i) }))).filter(s => !!s?.name).map((student, sIdx) => (
                                                                                     <span
                                                                                         key={sIdx}
-                                                                                        className="px-1 py-0.5 text-[0.6rem] font-bold text-slate-800 rounded shadow-sm border border-slate-200/50 print:border-black/20"
+                                                                                        className="px-1 py-0.5 text-[0.6rem] font-bold text-slate-800 rounded shadow-sm border border-slate-200/50"
                                                                                         style={{ backgroundColor: student?.color }}
                                                                                     >
                                                                                         {student?.name}
