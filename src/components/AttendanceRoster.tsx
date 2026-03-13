@@ -1,21 +1,31 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { format } from "date-fns";
-import { Users, Edit2, Trash2, AlertTriangle } from "lucide-react";
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, isSameDay, getDay } from "date-fns";
+import { Users, Edit2, Trash2, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
+// Utility to ensure week starts on Monday (1)
+const getWeekInterval = (date: Date) => {
+    return {
+        start: startOfWeek(date, { weekStartsOn: 1 }),
+        end: endOfWeek(date, { weekStartsOn: 1 })
+    };
+};
 
 type AttendanceData = {
     id: string;
     date: Date;
-    status: string;
-    method: string;
+    status: string; // PRESENT, ABSENT, EXCUSED
+    method: string; // MANUAL, QR_SCAN
     creatorId: string | null;
     enrollment: {
         id: string;
         subjectName: string;
         remainingSessions?: number;
+        attendedSessions?: number;
+        targetSessions?: number;
         student: { id: string; name: string };
         instructor: { id: string; name: string };
     };
@@ -32,43 +42,92 @@ export default function AttendanceRoster({
 }) {
     const router = useRouter();
 
-    // Group records exclusively by the formatted Date string (e.g. "2024-03-24")
-    const groupedByDate = useMemo(() => {
-        const groups: Record<string, AttendanceData[]> = {};
-        attendances.forEach(att => {
-            const dateStr = format(new Date(att.date), 'yyyy-MM-dd');
-            if (!groups[dateStr]) groups[dateStr] = [];
-            groups[dateStr].push(att);
-        });
-        return groups;
-    }, [attendances]);
+    // Week Date Tracking
+    const [currentWeekDates, setCurrentWeekDates] = useState<Date>(() => new Date());
 
-    const availableDates = Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a));
-    const [selectedDate, setSelectedDate] = useState<string>(availableDates[0] || format(new Date(), 'yyyy-MM-dd'));
+    const weekInterval = useMemo(() => getWeekInterval(currentWeekDates), [currentWeekDates]);
+    const weekDays = useMemo(() => eachDayOfInterval(weekInterval), [weekInterval]);
 
-    const currentRecords = groupedByDate[selectedDate] || [];
+    // Format week title (e.g. "2024년 3월 2주차")
+    const weekTitle = `${format(weekInterval.start, 'yyyy년 MM월 dd일')} ~ ${format(weekInterval.end, 'MM월 dd일')}`;
 
-    // Under that date, group by Class/Subject
+    const handlePrevWeek = () => setCurrentWeekDates(prev => subWeeks(prev, 1));
+    const handleNextWeek = () => setCurrentWeekDates(prev => addWeeks(prev, 1));
+
+    // Under the selected week, group by Class/Subject, then organize by student and their weekly attendance
     const groupedByClass = useMemo(() => {
-        const classStats: Record<string, AttendanceData[]> = {};
-        currentRecords.forEach(att => {
+        // Step 1: Filter attendances within the selected week (Mon - Sun)
+        const weeklyAttendances = attendances.filter(att => {
+            const date = new Date(att.date);
+            return date >= weekInterval.start && date <= weekInterval.end;
+        });
+
+        // Step 2: Group relevant enrollments by Class Key
+        type StudentMatrix = {
+            enrollment: AttendanceData['enrollment'];
+            // Key: date formatted as yyyy-MM-dd
+            records: Record<string, AttendanceData[]>;
+            weeklyTotal: number;
+        };
+
+        const classStats: Record<string, Record<string, StudentMatrix>> = {};
+
+        // We should first populate classes/students even if they didn't attend this week, 
+        // but for simplicity in a roster, showing only those who have any activity *or* just scanning all enrollments from attendances dataset.
+        // It's safer to pre-populate all students who ever took this class from the *entire* `attendances` list,
+        // so we see empty checkboxes for them this week.
+        
+        attendances.forEach(att => {
             const classKey = (role === 'ADMIN' || role === 'OWNER') && att.enrollment.instructor
                 ? `${att.enrollment.subjectName} (강사: ${att.enrollment.instructor.name})`
                 : att.enrollment.subjectName;
 
             if (!classStats[classKey]) {
-                classStats[classKey] = [];
+                classStats[classKey] = {};
             }
-            classStats[classKey].push(att);
+
+            const studentId = att.enrollment.student.id;
+            if (!classStats[classKey][studentId]) {
+                 classStats[classKey][studentId] = {
+                     enrollment: att.enrollment,
+                     records: {},
+                     weeklyTotal: 0
+                 }
+            }
         });
 
-        // Sort students within classes by Name
-        for (const key in classStats) {
-            classStats[key].sort((a, b) => a.enrollment.student.name.localeCompare(b.enrollment.student.name));
-        }
+        // Step 3: Populate weekly attendance matrix
+        weeklyAttendances.forEach(att => {
+            const classKey = (role === 'ADMIN' || role === 'OWNER') && att.enrollment.instructor
+                ? `${att.enrollment.subjectName} (강사: ${att.enrollment.instructor.name})`
+                : att.enrollment.subjectName;
+            
+            const studentId = att.enrollment.student.id;
+            const matrix = classStats[classKey][studentId];
+            
+            const dateStr = format(new Date(att.date), 'yyyy-MM-dd');
+            if(!matrix.records[dateStr]) matrix.records[dateStr] = [];
+            
+            matrix.records[dateStr].push(att);
+            
+            // Count "PRESENT" and "EXCUSED(공결)" towards weekly total
+            if (att.status === 'PRESENT' || att.status === 'EXCUSED') {
+                matrix.weeklyTotal += 1;
+            }
+        });
 
-        return Object.entries(classStats).sort((a, b) => a[0].localeCompare(b[0]));
-    }, [currentRecords, role]);
+
+        // Step 4: Convert to array and sort
+        const sortedClasses = Object.entries(classStats).map(([className, studentMap]) => {
+            const students = Object.values(studentMap).sort((a, b) => a.enrollment.student.name.localeCompare(b.enrollment.student.name));
+            return {
+                className,
+                students
+            };
+        }).sort((a, b) => a.className.localeCompare(b.className));
+
+        return sortedClasses;
+    }, [attendances, weekInterval, role]);
 
     const [attendanceToDelete, setAttendanceToDelete] = useState<AttendanceData | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -100,9 +159,40 @@ export default function AttendanceRoster({
     if (attendances.length === 0) {
         return (
             <div className="bg-white p-8 rounded-lg border border-slate-200 shadow-sm text-center">
-                <p className="text-slate-500">등록된 출결 기록이 없습니다.</p>
+                <p className="text-slate-500">등록된 전체 출결 기록이 없습니다.</p>
             </div>
         );
+    }
+
+    // Helper to render status styling inside the table cell
+    const renderStatusBadge = (records: AttendanceData[]) => {
+        if (!records || records.length === 0) return <span className="text-slate-300">-</span>;
+        
+        return (
+            <div className="flex flex-col gap-1 items-center justify-center">
+                {records.map(att => (
+                     <div key={att.id} className="relative group flex items-center justify-center">
+                         {att.status === 'PRESENT' && <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-bold border border-emerald-200 shadow-sm cursor-help" title="출석">◯</span>}
+                         {att.status === 'ABSENT' && <span className="w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold border border-red-200 shadow-sm cursor-help" title="무단 결석">❌</span>}
+                         {att.status === 'EXCUSED' && <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xs font-bold border border-amber-200 shadow-sm cursor-help" title="공결(출석인정)">△</span>}
+                         
+                         {/* Tooltip for deletion */}
+                         <div className="hidden group-hover:flex absolute z-10 bottom-full mb-1 bg-slate-800 text-white text-xs px-2 py-1 rounded shadow-lg items-center gap-2 whitespace-nowrap">
+                            <span>{format(new Date(att.date), 'HH:mm')}</span>
+                            {(role === 'OWNER' || role === 'ADMIN' || att.creatorId === currentUserId) && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); setAttendanceToDelete(att); }}
+                                    className="p-1 text-slate-300 hover:text-red-400 bg-slate-700/50 hover:bg-slate-700 rounded transition-colors focus:outline-none"
+                                    title="이 기록 삭제"
+                                >
+                                    <Trash2 className="w-3 h-3" />
+                                </button>
+                            )}
+                         </div>
+                     </div>
+                ))}
+            </div>
+        )
     }
 
     return (
@@ -111,102 +201,109 @@ export default function AttendanceRoster({
             <div className="p-4 sm:px-6 py-5 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h3 className="text-lg font-medium text-slate-900 flex items-center">
                     <Users className="w-5 h-5 mr-2 text-blue-600" />
-                    과목별 학생 출석 명부 (Roster)
+                    주간 출결 현황 보드
                 </h3>
-                <div className="flex items-center space-x-2">
-                    <label className="text-sm font-medium text-slate-700 whitespace-nowrap">조회 날짜:</label>
-                    <select
-                        value={selectedDate}
-                        onChange={(e) => setSelectedDate(e.target.value)}
-                        className="bg-white border border-slate-300 text-slate-900 text-sm font-medium rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2 outline-none shadow-sm min-w-[140px]"
-                    >
-                        {availableDates.length > 0 ? availableDates.map(d => (
-                            <option key={d} value={d}>{d}</option>
-                        )) : (
-                            <option value={selectedDate}>{selectedDate}</option>
-                        )}
-                    </select>
+                <div className="flex items-center space-x-3 bg-white border border-slate-300 rounded-lg p-1 shadow-sm">
+                    <button onClick={handlePrevWeek} className="p-1.5 hover:bg-slate-100 rounded text-slate-600 transition-colors">
+                        <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <div className="text-sm font-semibold text-slate-800 px-2 select-none min-w-[170px] text-center">
+                        {weekTitle}
+                    </div>
+                    <button onClick={handleNextWeek} className="p-1.5 hover:bg-slate-100 rounded text-slate-600 transition-colors">
+                        <ChevronRight className="w-5 h-5" />
+                    </button>
                 </div>
             </div>
 
             {groupedByClass.length === 0 ? (
                 <div className="p-8 text-center bg-white">
-                    <p className="text-sm text-slate-500">선택하신 날짜({selectedDate})의 출결 기록이 없습니다.</p>
+                    <p className="text-sm text-slate-500">참여 중인 과목 목록이 없습니다.</p>
                 </div>
             ) : (
                 <div className="divide-y divide-slate-100 p-2 sm:p-4 bg-slate-50">
-                    {groupedByClass.map(([className, classAttendances]) => (
+                    {groupedByClass.map(({ className, students }) => (
                         <div key={className} className="mb-6 last:mb-0 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                             <div className="bg-blue-50/50 px-5 py-3 border-b border-blue-100 flex justify-between items-center">
                                 <h4 className="font-bold text-slate-800 text-base">{className}</h4>
                                 <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                                    총 {classAttendances.length}명
+                                    총 {students.length}명
                                 </span>
                             </div>
 
                             <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-slate-200">
+                                <table className="min-w-full divide-y divide-slate-200 table-fixed">
                                     <thead className="bg-slate-50/80">
                                         <tr>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-[25%]">학생 이름</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-[20%]">상태</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">상세 시간</th>
-                                            <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider hidden sm:table-cell">기록 방식</th>
-                                            <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-[10%]">관리</th>
+                                            <th rowSpan={2} className="px-3 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider border-r border-slate-200 w-[12%] bg-slate-100/50 align-middle">
+                                                학생 이름
+                                            </th>
+                                            <th rowSpan={2} className="px-2 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider border-r border-slate-200 w-[10%] bg-slate-100/50 align-middle">
+                                                누적<br/><span className="text-[10px] font-normal text-slate-500">(당월 통계)</span>
+                                            </th>
+                                            {/* Date headers for Mon ~ Sun */}
+                                            {weekDays.map(day => (
+                                                <th key={format(day, 'yyyy-MM-dd')} className={`px-2 py-1.5 text-center text-xs font-medium border-b border-slate-200 border-r last:border-r-0 ${
+                                                    getDay(day) === 0 ? 'text-red-600 bg-red-50/30' : getDay(day) === 6 ? 'text-blue-600 bg-blue-50/30' : 'text-slate-600'
+                                                }`}>
+                                                    {format(day, 'MM/dd')}
+                                                </th>
+                                            ))}
+                                            <th rowSpan={2} className="px-2 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider border-l border-slate-200 w-[8%] bg-slate-100/50 align-middle">
+                                                주간
+                                            </th>
+                                        </tr>
+                                        <tr>
+                                            {/* Day names for Mon ~ Sun */}
+                                            {weekDays.map(day => (
+                                                <th key={`name-${format(day, 'yyyy-MM-dd')}`} className={`px-1 py-1 text-center text-xs border-r border-slate-200 last:border-r-0 ${
+                                                    getDay(day) === 0 ? 'text-red-500 font-bold bg-red-50/30' : getDay(day) === 6 ? 'text-blue-500 font-bold bg-blue-50/30' : 'text-slate-500 font-medium'
+                                                }`}>
+                                                    {['일', '월', '화', '수', '목', '금', '토'][getDay(day)]}
+                                                </th>
+                                            ))}
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-slate-100">
-                                        {classAttendances.map(att => (
-                                            <tr key={att.id} className="hover:bg-slate-50/80 transition-colors">
-                                                <td className="px-5 py-3.5 whitespace-nowrap">
-                                                    <div className="flex items-center space-x-2">
-                                                        <div className="text-sm font-semibold text-slate-900">{att.enrollment.student.name}</div>
-                                                        {att.enrollment.remainingSessions !== undefined && att.enrollment.remainingSessions <= 2 && (
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 border border-red-200" title="수강 횟수가 얼마 남지 않았습니다">
-                                                                🔴 잔여 {att.enrollment.remainingSessions}회
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-5 py-3.5 whitespace-nowrap">
-                                                    <span className={`px-2.5 py-1 inline-flex text-xs font-bold rounded-md ${att.status === 'PRESENT' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
-                                                        att.status === 'ABSENT' ? 'bg-red-100 text-red-800 border border-red-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
-                                                        }`}>
-                                                        {att.status === 'PRESENT' ? '✅ 출석' : att.status === 'ABSENT' ? '❌ 결석 (무단)' : '➖ 공결(병결)'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-5 py-3.5 whitespace-nowrap text-sm text-slate-600 font-medium">
-                                                    {format(new Date(att.date), 'HH:mm (a)')}
-                                                </td>
-                                                <td className="px-5 py-3.5 whitespace-nowrap text-sm text-slate-500 hidden sm:table-cell">
-                                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${att.method === 'QR_SCAN' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'}`}>
-                                                        {att.method === 'QR_SCAN' ? 'QR 스캔' : '수동 입력'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-5 py-3.5 whitespace-nowrap text-center">
-                                                    <div className="flex items-center justify-center space-x-1">
-                                                        {(role === 'OWNER' || att.creatorId === currentUserId) && (
-                                                            <Link
-                                                                href={`/admin/attendance/${att.id}/edit`}
-                                                                className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                                                title="수정"
-                                                            >
-                                                                <Edit2 className="w-4 h-4" />
-                                                            </Link>
-                                                        )}
-                                                        {(role === 'OWNER' || role === 'ADMIN' || att.creatorId === currentUserId) && (
-                                                            <button
-                                                                onClick={() => setAttendanceToDelete(att)}
-                                                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
-                                                                title="삭제"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {students.map((studentMatrix) => {
+                                            const attended = studentMatrix.enrollment.attendedSessions || 0;
+                                            const target = studentMatrix.enrollment.targetSessions || 8;
+                                            const isGoalReached = attended >= target && target > 0;
+
+                                            return (
+                                                <tr key={studentMatrix.enrollment.student.id} className="hover:bg-blue-50/20 transition-colors">
+                                                    {/* Student Name */}
+                                                    <td className="px-3 py-3 text-sm font-semibold text-slate-800 border-r border-slate-100 text-center whitespace-nowrap">
+                                                        {studentMatrix.enrollment.student.name}
+                                                    </td>
+                                                    
+                                                    {/* Cumulative Month */}
+                                                    <td className={`px-2 py-3 text-center font-bold text-sm border-r border-slate-100 ${
+                                                        isGoalReached ? 'bg-red-50 text-red-600' : 'text-slate-700'
+                                                    }`}>
+                                                        {attended} / {target}
+                                                    </td>
+
+                                                    {/* Mon ~ Sun Record Cells */}
+                                                    {weekDays.map(day => {
+                                                        const dateStr = format(day, 'yyyy-MM-dd');
+                                                        const records = studentMatrix.records[dateStr];
+                                                        const isWeekend = getDay(day) === 0 || getDay(day) === 6;
+
+                                                        return (
+                                                            <td key={dateStr} className={`px-1 py-2 text-center border-r border-slate-100 ${isWeekend ? 'bg-slate-50/30' : ''}`}>
+                                                                {renderStatusBadge(records)}
+                                                            </td>
+                                                        );
+                                                    })}
+
+                                                    {/* Weekly Total */}
+                                                    <td className="px-2 py-3 text-center text-sm font-bold text-blue-600 border-l border-slate-100 bg-blue-50/10">
+                                                        {studentMatrix.weeklyTotal}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>

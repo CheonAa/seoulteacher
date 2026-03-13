@@ -55,15 +55,23 @@ export default async function InstructorAttendancePage() {
     const attendancesWithRemaining = attendances.map(att => {
         const billing = billings.find(b => b.enrollmentId === att.enrollmentId);
         let remainingSessions = 999;
+        let attendedSessions = 0;
+        let targetSessions = 0;
+
         if (billing) {
             remainingSessions = (billing.targetSessions + billing.carryOverSessions) - billing.attendedSessions;
             if (remainingSessions < 0) remainingSessions = 0;
+            attendedSessions = billing.attendedSessions;
+            targetSessions = billing.targetSessions + billing.carryOverSessions;
         }
+
         return {
             ...att,
             enrollment: {
                 ...att.enrollment,
-                remainingSessions
+                remainingSessions,
+                attendedSessions,
+                targetSessions
             }
         }
     });
