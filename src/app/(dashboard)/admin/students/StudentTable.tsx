@@ -328,7 +328,7 @@ export default function StudentTable({ initialStudents, instructors, currentUser
                                             >
                                                 <QrCode className="w-4 h-4" />
                                             </button>
-                                            {(currentUserRole === 'OWNER' || student.creatorId === currentUserId) && (
+                                            {(currentUserRole === 'OWNER' || currentUserRole === 'ADMIN' || student.creatorId === currentUserId || student.enrollments.some(e => instructors.find(i => i.id === currentUserId)?.name === e.instructor.name)) && (
                                                 <Link
                                                     href={`/admin/students/${student.id}/edit`}
                                                     className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -337,7 +337,7 @@ export default function StudentTable({ initialStudents, instructors, currentUser
                                                     <Edit2 className="w-4 h-4" />
                                                 </Link>
                                             )}
-                                            {(currentUserRole === 'OWNER' || student.creatorId === currentUserId) && currentUserRole !== 'INSTRUCTOR' && (
+                                            {(currentUserRole === 'OWNER' || currentUserRole === 'ADMIN') && (
                                                 <button
                                                     onClick={() => setStudentToDelete(student)}
                                                     className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
