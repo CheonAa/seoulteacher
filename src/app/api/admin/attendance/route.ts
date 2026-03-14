@@ -38,6 +38,8 @@ export async function POST(req: Request) {
         const targetYear = attendanceDate.getFullYear();
         const targetMonth = attendanceDate.getMonth() + 1;
 
+        const affectedEnrollmentIds = new Set<string>();
+
         // Processing records in bulk sequentially (or using transaction)
         await prisma.$transaction(async (tx) => {
             for (const record of records) {
@@ -93,14 +95,20 @@ export async function POST(req: Request) {
                         });
                     }
 
-                    // Sync the billings forward
-                    await syncBillings(tx, enrollment.id, targetYear, targetMonth);
+                    affectedEnrollmentIds.add(enrollment.id);
                 }
             }
         }, {
             maxWait: 5000, // 기본 2000ms 보다 길게 설정
             timeout: 10000, // 기본 5000ms 보다 길게 10초로 설정
         });
+
+        // Sync the billings forward after the main transaction is closed, to avoid timeouts
+        for (const enrollmentId of affectedEnrollmentIds) {
+            await prisma.$transaction(async (tx) => {
+                await syncBillings(tx, enrollmentId, targetYear, targetMonth);
+            });
+        }
 
         return NextResponse.json({ message: '일괄 출결 등록 완료' });
     } catch (error: any) {
