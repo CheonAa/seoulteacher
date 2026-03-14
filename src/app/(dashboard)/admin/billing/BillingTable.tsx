@@ -75,6 +75,10 @@ export default function BillingTable({ billings }: { billings: any[] }) {
                                         납부완료 
                                         {billing.paidAt && <span className="text-xs ml-1 text-green-500">({format(new Date(billing.paidAt), 'yy/MM/dd')})</span>}
                                     </span>
+                                ) : billing.targetSessions === 0 ? (
+                                    <span className="inline-flex items-center text-slate-500 font-medium text-xs bg-slate-100 px-2 py-1 rounded">
+                                        이월로 대체<br/>(납부 불필요)
+                                    </span>
                                 ) : (
                                     <button
                                         onClick={() => handleMarkAsPaid(billing.id)}
