@@ -238,8 +238,8 @@ export default function AttendanceRoster({
                                             <th rowSpan={2} className="px-3 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider border-r border-slate-200 w-[12%] bg-slate-100 align-middle sticky left-0 z-20 shadow-[1px_0_0_0_#e2e8f0]">
                                                 학생 이름
                                             </th>
-                                            <th rowSpan={2} className="px-2 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider border-r border-slate-200 w-[10%] bg-slate-100/50 align-middle">
-                                                누적<br/><span className="text-[10px] font-normal text-slate-500">(당월 통계)</span>
+                                            <th rowSpan={2} className="px-2 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider border-r border-slate-200 w-[12%] bg-slate-100/50 align-middle">
+                                                출결 통계<br/><span className="text-[10px] font-normal text-slate-500">(당월 누적/잔여)</span>
                                             </th>
                                             {/* Date headers for Mon ~ Sun */}
                                             {weekDays.map(day => (
@@ -268,6 +268,7 @@ export default function AttendanceRoster({
                                         {students.map((studentMatrix) => {
                                             const attended = studentMatrix.enrollment.attendedSessions || 0;
                                             const target = studentMatrix.enrollment.targetSessions || 8;
+                                            const remaining = studentMatrix.enrollment.remainingSessions ?? (target - attended > 0 ? target - attended : 0);
                                             const isGoalReached = attended >= target && target > 0;
 
                                             return (
@@ -278,10 +279,15 @@ export default function AttendanceRoster({
                                                     </td>
                                                     
                                                     {/* Cumulative Month */}
-                                                    <td className={`px-2 py-3 text-center font-bold text-sm border-r border-slate-100 ${
-                                                        isGoalReached ? 'bg-red-50 text-red-600' : 'text-slate-700'
+                                                    <td className={`px-2 py-2 text-center text-xs border-r border-slate-100 ${
+                                                        isGoalReached ? 'bg-red-50' : ''
                                                     }`}>
-                                                        {attended} / {target}
+                                                        <div className={`font-bold text-sm ${isGoalReached ? 'text-red-600' : 'text-slate-700'}`}>
+                                                            {attended} / {target}
+                                                        </div>
+                                                        <div className={`mt-0.5 font-medium ${remaining === 0 ? 'text-red-500' : 'text-blue-600'}`}>
+                                                            {remaining === 0 ? '완료' : `잔여 ${remaining}회`}
+                                                        </div>
                                                     </td>
 
                                                     {/* Mon ~ Sun Record Cells */}

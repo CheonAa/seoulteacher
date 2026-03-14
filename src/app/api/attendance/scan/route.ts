@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { syncBillings } from '@/lib/billingSync';
 
 export async function POST(req: Request) {
     try {
@@ -39,50 +40,53 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: '오늘은 이미 출석 처리되었습니다.', student }, { status: 200 });
         }
 
-        // 출석 생성
-        await prisma.attendance.create({
-            data: {
-                enrollmentId: enrollment.id,
-                method: 'QR_SCAN',
-                status: 'PRESENT',
-            }
-        });
-
-        // 이번 달 청구/이월 세션 업데이트
-        const currentYear = today.getFullYear();
-        const currentMonth = today.getMonth() + 1;
-
-        let billing = await prisma.monthlyBilling.findFirst({
-            where: {
-                enrollmentId: enrollment.id,
-                year: currentYear,
-                month: currentMonth
-            }
-        });
-
-        if (!billing) {
-            // 전달의 이월 회차를 가져오는 로직 (엑셀 기준) - 현재는 단순 생성
-            billing = await prisma.monthlyBilling.create({
+        const billing = await prisma.$transaction(async (tx) => {
+            // 출석 생성
+            await tx.attendance.create({
                 data: {
                     enrollmentId: enrollment.id,
+                    method: 'QR_SCAN',
+                    status: 'PRESENT',
+                }
+            });
+
+            // 이번 달 청구/이월 세션 업데이트
+            const currentYear = today.getFullYear();
+            const currentMonth = today.getMonth() + 1;
+
+            let b = await tx.monthlyBilling.findFirst({
+                where: {
+                    enrollmentId: enrollment.id,
                     year: currentYear,
-                    month: currentMonth,
-                    targetSessions: enrollment.targetSessionsMonth,
-                    attendedSessions: 1,
-                    carryOverSessions: enrollment.targetSessionsMonth - 1,
+                    month: currentMonth
                 }
             });
-        } else {
-            const newAttended = billing.attendedSessions + 1;
-            const newCarryOver = billing.targetSessions - newAttended;
-            billing = await prisma.monthlyBilling.update({
-                where: { id: billing.id },
-                data: {
-                    attendedSessions: newAttended,
-                    carryOverSessions: newCarryOver,
-                }
-            });
-        }
+
+            if (!b) {
+                b = await tx.monthlyBilling.create({
+                    data: {
+                        enrollmentId: enrollment.id,
+                        year: currentYear,
+                        month: currentMonth,
+                        targetSessions: 0,
+                        attendedSessions: 1,
+                        carryOverSessions: 0,
+                    }
+                });
+            } else {
+                b = await tx.monthlyBilling.update({
+                    where: { id: b.id },
+                    data: {
+                        attendedSessions: b.attendedSessions + 1,
+                    }
+                });
+            }
+
+            await syncBillings(tx, enrollment.id, currentYear, currentMonth);
+            
+            // Re-fetch b after sync to get updated carryOver and target sessions
+            return await tx.monthlyBilling.findUniqueOrThrow({ where: { id: b.id }});
+        });
 
         const isLastSession = billing.attendedSessions >= billing.targetSessions;
 

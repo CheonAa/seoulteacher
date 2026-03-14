@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
+import { syncBillings } from "@/lib/billingSync";
 
 export async function GET(req: Request) {
     const session = await getServerSession(authOptions);
@@ -98,37 +99,51 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "오늘 이미 출석이 완료된 과목입니다." }, { status: 400 });
         }
 
-        // Add Attendance record
-        await prisma.attendance.create({
-            data: {
-                enrollmentId,
-                status: "PRESENT",
-                method: "QR_SCAN",
-            }
-        });
-
-        // Update MonthlyBilling if exists
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth() + 1;
-
-        const currentBilling = await prisma.monthlyBilling.findFirst({
-            where: {
-                enrollmentId,
-                year: currentYear,
-                month: currentMonth
-            }
-        });
-
-        if (currentBilling) {
-            await prisma.monthlyBilling.update({
-                where: { id: currentBilling.id },
+        await prisma.$transaction(async (tx) => {
+            // Add Attendance record
+            await tx.attendance.create({
                 data: {
-                    attendedSessions: { increment: 1 },
-                    carryOverSessions: { decrement: 1 }
+                    enrollmentId,
+                    status: "PRESENT",
+                    method: "QR_SCAN",
                 }
             });
-        }
+
+            // Update MonthlyBilling if exists
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth() + 1;
+
+            const currentBilling = await tx.monthlyBilling.findFirst({
+                where: {
+                    enrollmentId,
+                    year: currentYear,
+                    month: currentMonth
+                }
+            });
+
+            if (!currentBilling) {
+                await tx.monthlyBilling.create({
+                    data: {
+                        enrollmentId,
+                        year: currentYear,
+                        month: currentMonth,
+                        targetSessions: 0,
+                        attendedSessions: 1,
+                        carryOverSessions: 0,
+                    }
+                });
+            } else {
+                await tx.monthlyBilling.update({
+                    where: { id: currentBilling.id },
+                    data: {
+                        attendedSessions: currentBilling.attendedSessions + 1,
+                    }
+                });
+            }
+
+            await syncBillings(tx, enrollmentId, currentYear, currentMonth);
+        });
 
         return NextResponse.json({
             success: true,

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from '@/lib/prisma';
+import { syncBillings } from '@/lib/billingSync';
 
 export async function POST(req: Request) {
     try {
@@ -78,24 +79,27 @@ export async function POST(req: Request) {
                                 enrollmentId: enrollment.id,
                                 year: targetYear,
                                 month: targetMonth,
-                                targetSessions: enrollment.targetSessionsMonth,
+                                targetSessions: 0,
                                 attendedSessions: 1,
-                                carryOverSessions: enrollment.targetSessionsMonth - 1,
+                                carryOverSessions: 0,
                             }
                         });
                     } else {
-                        const newAttended = billing.attendedSessions + 1;
-                        const newCarryOver = billing.targetSessions - newAttended;
                         await tx.monthlyBilling.update({
                             where: { id: billing.id },
                             data: {
-                                attendedSessions: newAttended,
-                                carryOverSessions: newCarryOver,
+                                attendedSessions: billing.attendedSessions + 1,
                             }
                         });
                     }
+
+                    // Sync the billings forward
+                    await syncBillings(tx, enrollment.id, targetYear, targetMonth);
                 }
             }
+        }, {
+            maxWait: 5000, // 기본 2000ms 보다 길게 설정
+            timeout: 10000, // 기본 5000ms 보다 길게 10초로 설정
         });
 
         return NextResponse.json({ message: '일괄 출결 등록 완료' });

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from '@/lib/prisma';
+import { syncBillings } from '@/lib/billingSync';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -109,15 +110,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
                     if (attendedDelta !== 0) {
                         const newAttended = Math.max(0, billing.attendedSessions + attendedDelta);
-                        const newCarryOver = Math.max(0, billing.targetSessions - newAttended);
 
                         await tx.monthlyBilling.update({
                             where: { id: billing.id },
                             data: {
                                 attendedSessions: newAttended,
-                                carryOverSessions: newCarryOver
                             }
                         });
+
+                        await syncBillings(tx, existingAttendance.enrollmentId, year, month);
                     }
                 }
             }
@@ -175,15 +176,15 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
                 if (billing && billing.attendedSessions > 0) {
                     const newAttended = billing.attendedSessions - 1;
-                    const newCarryOver = Math.max(0, billing.targetSessions - newAttended);
 
                     await tx.monthlyBilling.update({
                         where: { id: billing.id },
                         data: {
                             attendedSessions: newAttended,
-                            carryOverSessions: newCarryOver
                         }
                     });
+
+                    await syncBillings(tx, attendance.enrollmentId, year, month);
                 }
             }
 

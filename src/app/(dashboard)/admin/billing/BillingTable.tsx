@@ -63,8 +63,8 @@ export default function BillingTable({ billings }: { billings: any[] }) {
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                 <div className="flex flex-col">
                                     <span>출석: {billing.attendedSessions}회</span>
-                                    <span className="text-red-500 font-medium cursor-help" title={`목표(${billing.targetSessions}) - 출석(${billing.attendedSessions})`}>
-                                        이월: {billing.carryOverSessions}회
+                                    <span className="text-red-500 font-medium cursor-help" title={`잔여 횟수 = (전월 이월 + 이번달 추가목표 ${billing.targetSessions}회) - 출석 ${billing.attendedSessions}회`}>
+                                        이월 잔여: {billing.carryOverSessions}회
                                     </span>
                                 </div>
                             </td>

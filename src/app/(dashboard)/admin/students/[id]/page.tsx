@@ -35,6 +35,21 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
         notFound();
     }
 
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+    const enrollmentIds = student.enrollments.map(e => e.id);
+    const billings = await prisma.monthlyBilling.findMany({
+        where: {
+            enrollmentId: { in: enrollmentIds },
+            year: currentYear,
+            month: currentMonth
+        }
+    });
+
+    if (!student) {
+        notFound();
+    }
+
     return (
         <div className="space-y-6 max-w-6xl mx-auto">
             <div className="flex items-center justify-between border-b border-slate-200 pb-4">
@@ -119,33 +134,56 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
                             {student.enrollments.length === 0 ? (
                                 <p className="text-sm text-slate-500 text-center py-4 bg-slate-50 rounded border border-dashed border-slate-200">등록된 수강 과목이 없습니다.</p>
                             ) : (
-                                student.enrollments.map(env => (
-                                    <div key={env.id} className="border border-slate-200 rounded-lg p-3 hover:border-blue-300 hover:shadow-sm transition-all relative overflow-hidden">
-                                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${env.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
-                                        <div className="flex justify-between items-start mb-2 pl-2">
-                                            <h3 className="font-bold text-slate-800">{env.subjectName}</h3>
-                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${env.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
-                                                {env.status === 'ACTIVE' ? '수강중' : env.status}
-                                            </span>
-                                        </div>
-                                        <div className="space-y-1.5 pl-2 text-xs">
-                                            <div className="flex justify-between items-center bg-slate-50 px-2 py-1.5 rounded text-slate-600">
-                                                <span className="font-medium flex items-center gap-1.5"><User className="w-3 h-3 text-slate-400" /> 담당 강사</span>
-                                                <span className="font-semibold text-slate-800">{env.instructor.name}</span>
+                                student.enrollments.map(env => {
+                                    const billing = billings.find(b => b.enrollmentId === env.id);
+                                    let remainingSessions = 0;
+                                    let attendedSessions = 0;
+                                    let targetSessionsTotal = env.targetSessionsMonth; // default
+
+                                    if (billing) {
+                                        attendedSessions = billing.attendedSessions;
+                                        targetSessionsTotal = billing.targetSessions + billing.carryOverSessions;
+                                        remainingSessions = targetSessionsTotal - attendedSessions;
+                                        if (remainingSessions < 0) remainingSessions = 0;
+                                    }
+
+                                    return (
+                                        <div key={env.id} className="border border-slate-200 rounded-lg p-3 hover:border-blue-300 hover:shadow-sm transition-all relative overflow-hidden">
+                                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${env.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
+                                            <div className="flex justify-between items-start mb-2 pl-2">
+                                                <h3 className="font-bold text-slate-800">{env.subjectName}</h3>
+                                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${env.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
+                                                    {env.status === 'ACTIVE' ? '수강중' : env.status}
+                                                </span>
                                             </div>
-                                            <div className="flex justify-between items-center text-slate-600 px-2 py-1">
-                                                <span className="font-medium flex items-center gap-1.5"><CreditCard className="w-3 h-3 text-slate-400" /> 수강료/횟수</span>
-                                                <span>{env.feePerSession.toLocaleString()} ₫ <span className="text-slate-400">×</span> {env.targetSessionsMonth}회</span>
-                                            </div>
-                                            {env.depositorName && (
-                                                <div className="flex justify-between items-center text-slate-600 px-2 py-1">
-                                                    <span className="font-medium flex items-center gap-1.5"><CreditCard className="w-3 h-3 text-slate-400" /> 입금자명</span>
-                                                    <span className="text-blue-600 font-medium bg-blue-50 px-1.5 rounded">{env.depositorName}</span>
+                                            <div className="space-y-1.5 pl-2 text-xs">
+                                                <div className="flex justify-between items-center bg-slate-50 px-2 py-1.5 rounded text-slate-600">
+                                                    <span className="font-medium flex items-center gap-1.5"><User className="w-3 h-3 text-slate-400" /> 담당 강사</span>
+                                                    <span className="font-semibold text-slate-800">{env.instructor.name}</span>
                                                 </div>
-                                            )}
+                                                <div className="flex justify-between items-center text-slate-600 px-2 py-1">
+                                                    <span className="font-medium flex items-center gap-1.5"><CreditCard className="w-3 h-3 text-slate-400" /> 수강료/기본횟수</span>
+                                                    <span>{env.feePerSession.toLocaleString()} ₫ <span className="text-slate-400">×</span> {env.targetSessionsMonth}회</span>
+                                                </div>
+                                                <div className="flex justify-between items-center px-2 py-1.5 bg-blue-50/50 rounded border border-blue-100">
+                                                    <span className="font-medium text-slate-700 flex items-center gap-1.5">이번 달 출석 잔여</span>
+                                                    <div className="text-right">
+                                                        <div className="font-bold text-slate-700">{attendedSessions} / {targetSessionsTotal}회</div>
+                                                        <div className={`font-semibold ${remainingSessions === 0 ? 'text-red-500' : 'text-blue-600'}`}>
+                                                            {remainingSessions === 0 ? '수업 완료' : `잔여 ${remainingSessions}회`}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {env.depositorName && (
+                                                    <div className="flex justify-between items-center text-slate-600 px-2 py-1">
+                                                        <span className="font-medium flex items-center gap-1.5"><CreditCard className="w-3 h-3 text-slate-400" /> 입금자명</span>
+                                                        <span className="text-blue-600 font-medium bg-blue-50 px-1.5 rounded">{env.depositorName}</span>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))
+                                    );
+                                })
                             )}
                         </div>
                     </div>

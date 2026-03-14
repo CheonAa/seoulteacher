@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Users } from "lucide-react";
+import { Save, Users, Plus, X } from "lucide-react";
 import { format } from "date-fns";
 
 type EnrollmentDetails = {
@@ -43,8 +43,6 @@ export default function AttendanceForm({ enrollments, initialData, isEdit = fals
         }));
     }, [enrollments, isEdit, initialData]);
 
-    const [selectedClass, setSelectedClass] = useState<string>("");
-
     const getInitialDateStr = (initDate?: any) => {
         if (initDate) return format(new Date(initDate), "yyyy-MM-dd'T'HH:mm");
         const now = new Date();
@@ -53,30 +51,29 @@ export default function AttendanceForm({ enrollments, initialData, isEdit = fals
         return format(now, "yyyy-MM-dd'T'HH:mm");
     };
 
-    // Default form data
-    const [formData, setFormData] = useState({
-        date: getInitialDateStr(initialData?.date),
-    });
+    // Form data for dates
+    const [dates, setDates] = useState<string[]>([getInitialDateStr(initialData?.date)]);
+
+    const handleAddDate = () => {
+        setDates([...dates, getInitialDateStr()]);
+    };
+
+    const handleRemoveDate = (index: number) => {
+        const newDates = dates.filter((_, i) => i !== index);
+        setDates(newDates);
+    };
+
+    const handleDateChange = (index: number, value: string) => {
+        const newDates = [...dates];
+        newDates[index] = value;
+        setDates(newDates);
+    };
 
     // Holds { [enrollmentId]: "PRESENT" | "ABSENT" | "EXCUSED" }
     const [attendanceRecords, setAttendanceRecords] = useState<Record<string, string>>(
         initialData ? { [initialData.enrollmentId]: initialData.status === 'SICK' ? 'EXCUSED' : initialData.status } : {}
     );
 
-    const handleClassChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const className = e.target.value;
-        setSelectedClass(className);
-
-        // Reset records to default to "PRESENT" for all students in the class
-        const cls = classes.find(c => c.name === className);
-        if (cls) {
-            const newRecords: Record<string, string> = {};
-            cls.students.forEach(student => {
-                newRecords[student.id] = "PRESENT"; // Default
-            });
-            setAttendanceRecords(newRecords);
-        }
-    };
 
     const handleBulkPresent = (className: string) => {
         const cls = classes.find(c => c.name === className);
@@ -98,9 +95,6 @@ export default function AttendanceForm({ enrollments, initialData, isEdit = fals
         }));
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -113,6 +107,11 @@ export default function AttendanceForm({ enrollments, initialData, isEdit = fals
             setError("출결 상태를 선택한 학생이 없습니다. 최소 1명 이상의 출결을 입력해주세요.");
             return;
         }
+        
+        if (dates.some(d => !d)) {
+            setError("모든 날짜 및 시간을 입력해주세요.");
+            return;
+        }
 
         setLoading(true);
         setError(null);
@@ -121,25 +120,40 @@ export default function AttendanceForm({ enrollments, initialData, isEdit = fals
             const url = isEdit ? `/api/admin/attendance/${initialData.id}` : "/api/admin/attendance";
             const method = isEdit ? "PUT" : "POST";
 
-            const payload = isEdit 
-                ? {
+            // If editing, we only support one date usually, but we handle the array just in case
+            if (isEdit) {
+                 const payload = {
                     enrollmentId: recordsPayload[0].enrollmentId,
                     status: recordsPayload[0].status,
-                    date: new Date(formData.date).toISOString()
-                  }
-                : {
-                    date: new Date(formData.date).toISOString(),
-                    records: recordsPayload
-                  };
-
-            const res = await fetch(url, {
-                method,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "저장에 실패했습니다.");
+                    date: new Date(dates[0]).toISOString()
+                 };
+                 const res = await fetch(url, {
+                    method,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                 });
+                 if (!res.ok) {
+                     const data = await res.json();
+                     throw new Error(data.error || "저장에 실패했습니다.");
+                 }
+            } else {
+                // Submit for each date sequentially or concurrently
+                for (const dateStr of dates) {
+                     const payload = {
+                        date: new Date(dateStr).toISOString(),
+                        records: recordsPayload
+                     };
+                     const res = await fetch(url, {
+                        method,
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload),
+                     });
+                     if (!res.ok) {
+                         const data = await res.json();
+                         throw new Error(`(${dateStr}) ${data.error || "저장에 실패했습니다."}`);
+                     }
+                }
+            }
 
             router.push("/admin/attendance");
             router.refresh();
@@ -158,21 +172,51 @@ export default function AttendanceForm({ enrollments, initialData, isEdit = fals
             )}
 
             <div>
-                <h3 className="text-lg font-medium text-slate-900 border-b border-slate-200 pb-2 mb-4">
-                    일괄 출결 등록
-                </h3>
-                <div className="max-w-md">
-                    <label className="block text-sm font-medium text-slate-700">날짜 및 시간 <span className="text-red-500">*</span></label>
-                    <input
-                        type="datetime-local"
-                        name="date"
-                        required
-                        step="600"
-                        value={formData.date}
-                        onChange={handleChange}
-                        className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    />
-                    <p className="mt-1 text-xs text-slate-500">10분 단위로 선택할 수 있습니다.</p>
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2 mb-4">
+                    <h3 className="text-lg font-medium text-slate-900">
+                        일괄 출결 등록
+                    </h3>
+                    {!isEdit && (
+                        <button
+                            type="button"
+                            onClick={handleAddDate}
+                            className="inline-flex items-center px-3 py-1.5 border border-blue-200 text-xs font-medium rounded text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
+                        >
+                            <Plus className="w-4 h-4 mr-1" />
+                            날짜 추가
+                        </button>
+                    )}
+                </div>
+                
+                <div className="space-y-3">
+                     {dates.map((dateStr, index) => (
+                         <div key={index} className="flex flex-col sm:flex-row sm:items-end gap-3 max-w-xl">
+                            <div className="flex-1">
+                                <label className="block text-sm font-medium text-slate-700">날짜 및 시간 <span className="text-red-500">*</span></label>
+                                <input
+                                    type="datetime-local"
+                                    required
+                                    step="600" // 10 minute intervals
+                                    value={dateStr}
+                                    onChange={(e) => handleDateChange(index, e.target.value)}
+                                    className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                />
+                                {index === dates.length - 1 && (
+                                     <p className="mt-1 text-xs text-slate-500">10분 단위로 선택할 수 있습니다. 날짜 추가 버튼을 눌러 여러 날짜를 한 번에 등록할 수 있습니다.</p>
+                                )}
+                            </div>
+                            {dates.length > 1 && (
+                                <button
+                                    type="button"
+                                    onClick={() => handleRemoveDate(index)}
+                                    className="mb-0 sm:mb-[2px] p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                    title="날짜 삭제"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            )}
+                         </div>
+                     ))}
                 </div>
             </div>
 
@@ -200,7 +244,7 @@ export default function AttendanceForm({ enrollments, initialData, isEdit = fals
                                 <thead className="bg-white">
                                     <tr>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-1/2">
-                                            학생 이름
+                                            학생 이름 / 수강 과목
                                         </th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-1/2">
                                             출결 상태
@@ -210,8 +254,11 @@ export default function AttendanceForm({ enrollments, initialData, isEdit = fals
                                 <tbody className="bg-white divide-y divide-slate-100">
                                     {cls.students.map(student => (
                                         <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
-                                                {student.student.name}
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-medium text-slate-900">{student.student.name}</span>
+                                                    <span className="text-xs text-slate-500 mt-0.5">{student.subjectName}</span>
+                                                </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                                 <select
