@@ -189,34 +189,59 @@ export default function AttendanceForm({ enrollments, initialData, isEdit = fals
                 </div>
                 
                 <div className="space-y-3">
-                     {dates.map((dateStr, index) => (
-                         <div key={index} className="flex flex-col sm:flex-row sm:items-end gap-3 max-w-xl">
-                            <div className="flex-1">
-                                <label className="block text-sm font-medium text-slate-700">날짜 및 시간 <span className="text-red-500">*</span></label>
-                                <input
-                                    type="datetime-local"
-                                    required
-                                    step="600" // 10 minute intervals
-                                    value={dateStr}
-                                    onChange={(e) => handleDateChange(index, e.target.value)}
-                                    className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                />
-                                {index === dates.length - 1 && (
-                                     <p className="mt-1 text-xs text-slate-500">10분 단위로 선택할 수 있습니다. 날짜 추가 버튼을 눌러 여러 날짜를 한 번에 등록할 수 있습니다.</p>
+                     {dates.map((dateStr, index) => {
+                         const [dDate, dTime] = dateStr.split('T');
+                         const tTime = dTime ? dTime.substring(0, 5) : '14:00';
+                         
+                         return (
+                             <div key={index} className="flex flex-col sm:flex-row sm:items-end gap-3 max-w-xl relative pb-5 sm:pb-0">
+                                <div className="flex-1 flex gap-2">
+                                    <div className="w-1/2">
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">날짜 <span className="text-red-500">*</span></label>
+                                        <input
+                                            type="date"
+                                            required
+                                            value={dDate}
+                                            onChange={(e) => handleDateChange(index, `${e.target.value}T${tTime}`)}
+                                            className="block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                        />
+                                    </div>
+                                    <div className="w-1/2">
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">시간 <span className="text-red-500">*</span></label>
+                                        <select
+                                            required
+                                            value={tTime}
+                                            onChange={(e) => handleDateChange(index, `${dDate}T${e.target.value}`)}
+                                            className="block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                        >
+                                            {Array.from({ length: 24 * 6 }).map((_, i) => {
+                                                const h = Math.floor(i / 6);
+                                                const m = (i % 6) * 10;
+                                                const val = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                                                const ampm = h >= 12 ? '오후' : '오전';
+                                                const displayH = h % 12 === 0 ? 12 : h % 12;
+                                                const displayVal = `${ampm} ${String(displayH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                                                return <option key={val} value={val}>{displayVal}</option>;
+                                            })}
+                                        </select>
+                                    </div>
+                                    {index === dates.length - 1 && (
+                                         <p className="absolute -bottom-5 left-0 text-xs text-slate-500 whitespace-nowrap">날짜 추가 버튼을 눌러 여러 번의 수업을 한 번에 등록할 수 있습니다.</p>
+                                    )}
+                                </div>
+                                {dates.length > 1 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRemoveDate(index)}
+                                        className="mb-0 sm:mb-[2px] p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                        title="날짜 삭제"
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
                                 )}
-                            </div>
-                            {dates.length > 1 && (
-                                <button
-                                    type="button"
-                                    onClick={() => handleRemoveDate(index)}
-                                    className="mb-0 sm:mb-[2px] p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                                    title="날짜 삭제"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-                            )}
-                         </div>
-                     ))}
+                             </div>
+                         );
+                     })}
                 </div>
             </div>
 
@@ -271,7 +296,7 @@ export default function AttendanceForm({ enrollments, initialData, isEdit = fals
                                                         'bg-amber-50 text-amber-700 border-amber-200'
                                                     }`}
                                                 >
-                                                    <option value="" disabled>선택해주세요</option>
+                                                    <option value="">선택해주세요</option>
                                                     <option value="PRESENT">✅ 출석</option>
                                                     <option value="ABSENT">❌ 결석 (무단)</option>
                                                     <option value="EXCUSED">➖ 공결(병결)</option>
