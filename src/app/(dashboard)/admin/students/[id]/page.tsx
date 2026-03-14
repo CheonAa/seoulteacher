@@ -142,9 +142,8 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
 
                                     if (billing) {
                                         attendedSessions = billing.attendedSessions;
-                                        targetSessionsTotal = billing.targetSessions + billing.carryOverSessions;
-                                        remainingSessions = targetSessionsTotal - attendedSessions;
-                                        if (remainingSessions < 0) remainingSessions = 0;
+                                        targetSessionsTotal = billing.carryOverSessions + billing.attendedSessions;
+                                        remainingSessions = billing.carryOverSessions;
                                     }
 
                                     return (

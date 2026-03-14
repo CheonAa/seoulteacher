@@ -59,10 +59,9 @@ export default async function InstructorAttendancePage() {
         let targetSessions = 0;
 
         if (billing) {
-            remainingSessions = (billing.targetSessions + billing.carryOverSessions) - billing.attendedSessions;
-            if (remainingSessions < 0) remainingSessions = 0;
+            remainingSessions = billing.carryOverSessions;
             attendedSessions = billing.attendedSessions;
-            targetSessions = billing.targetSessions + billing.carryOverSessions;
+            targetSessions = billing.carryOverSessions + billing.attendedSessions;
         }
 
         return {
