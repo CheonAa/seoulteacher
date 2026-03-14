@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import StudentConsultationBoard from './StudentConsultationBoard';
+import StudentAttendanceCalendar from '@/components/StudentAttendanceCalendar';
 
 export const metadata: Metadata = {
     title: '학생 상세 정보 | 관리자 대시보드',
@@ -189,7 +190,8 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
                 </div>
 
                 {/* Right Column: Consultation Board */}
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 space-y-6">
+                    <StudentAttendanceCalendar studentId={student.id} />
                     <StudentConsultationBoard 
                         studentId={student.id} 
                         currentUserId={session.user.id} 
