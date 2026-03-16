@@ -83,7 +83,7 @@ export default function InstructorPayrollPage() {
                     <select 
                         value={year} 
                         onChange={(e) => setYear(Number(e.target.value))}
-                        className="border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                        className="text-slate-900 bg-white border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     >
                         {[2024, 2025, 2026, 2027].map(y => (
                             <option key={y} value={y}>{y}년</option>
@@ -92,7 +92,7 @@ export default function InstructorPayrollPage() {
                     <select 
                         value={month} 
                         onChange={(e) => setMonth(Number(e.target.value))}
-                        className="border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                        className="text-slate-900 bg-white border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     >
                         {Array.from({length: 12}, (_, i) => i + 1).map(m => (
                             <option key={m} value={m}>{m}월</option>
