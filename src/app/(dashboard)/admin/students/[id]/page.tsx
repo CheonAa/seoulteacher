@@ -40,7 +40,13 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
 
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
-    const enrollmentIds = student.enrollments.map(e => e.id);
+    
+    const isInstructor = session.user.role === 'INSTRUCTOR';
+    const visibleEnrollments = isInstructor 
+        ? student.enrollments.filter(e => e.instructor.name === session.user.name)
+        : student.enrollments;
+
+    const enrollmentIds = visibleEnrollments.map(e => e.id);
     const allBillings = await prisma.monthlyBilling.findMany({
         where: { enrollmentId: { in: enrollmentIds } },
         include: { enrollment: true },
@@ -131,13 +137,13 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
                     <div className="bg-white shadow-sm rounded-xl border border-slate-200 overflow-hidden">
                         <div className="bg-slate-50 border-b border-slate-200 px-5 py-3 flex items-center gap-2">
                             <Calendar className="w-4 h-4 text-indigo-600" />
-                            <h2 className="font-semibold text-slate-800">수강 내역 ({student.enrollments.length}과목)</h2>
+                            <h2 className="font-semibold text-slate-800">수강 내역 ({visibleEnrollments.length}과목)</h2>
                         </div>
                         <div className="p-5 space-y-4">
-                            {student.enrollments.length === 0 ? (
-                                <p className="text-sm text-slate-500 text-center py-4 bg-slate-50 rounded border border-dashed border-slate-200">등록된 수강 과목이 없습니다.</p>
+                            {visibleEnrollments.length === 0 ? (
+                                <p className="text-sm text-slate-500 text-center py-4 bg-slate-50 rounded border border-dashed border-slate-200">담당 중인 수강 과목이 없습니다.</p>
                             ) : (
-                                student.enrollments.map(env => {
+                                visibleEnrollments.map(env => {
                                     const billing = billings.find(b => b.enrollmentId === env.id);
                                     let remainingSessions = 0;
                                     let attendedSessions = 0;
