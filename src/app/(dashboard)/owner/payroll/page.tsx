@@ -330,7 +330,7 @@ export default function OwnerPayrollPage() {
                                                     type="number" 
                                                     value={p.insuranceDeduction || ''}
                                                     onChange={(e) => handleInputChange(idx, 'insuranceDeduction', e.target.value)}
-                                                    className="w-24 text-right border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-xs py-1 px-2"
+                                                    className="w-24 text-right text-slate-900 bg-white border border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-xs py-1 px-2"
                                                 />
                                             </td>
                                             <td className="px-3 py-4 whitespace-nowrap border-r border-slate-200 bg-yellow-50/30">
@@ -338,7 +338,7 @@ export default function OwnerPayrollPage() {
                                                     type="number" 
                                                     value={p.netVietnamSalary || ''}
                                                     onChange={(e) => handleInputChange(idx, 'netVietnamSalary', e.target.value)}
-                                                    className="w-28 text-right border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-xs py-1 px-2"
+                                                    className="w-28 text-right text-slate-900 bg-white border border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-xs py-1 px-2"
                                                 />
                                             </td>
                                             <td className="px-3 py-4 whitespace-nowrap text-right text-slate-500 border-r border-slate-200">
@@ -355,7 +355,7 @@ export default function OwnerPayrollPage() {
                                                     step="0.001"
                                                     value={p.exchangeRate || ''}
                                                     onChange={(e) => handleInputChange(idx, 'exchangeRate', e.target.value)}
-                                                    className="w-20 text-right border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-xs py-1 px-2"
+                                                    className="w-20 text-right text-slate-900 bg-white border border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-xs py-1 px-2"
                                                 />
                                             </td>
                                             <td className="px-3 py-4 whitespace-nowrap text-right text-slate-700 border-r border-slate-200">
@@ -366,7 +366,7 @@ export default function OwnerPayrollPage() {
                                                     type="number" 
                                                     value={p.transferFee || ''}
                                                     onChange={(e) => handleInputChange(idx, 'transferFee', e.target.value)}
-                                                    className="w-20 text-right border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-xs py-1 px-2"
+                                                    className="w-20 text-right text-slate-900 bg-white border border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-xs py-1 px-2"
                                                 />
                                             </td>
                                             <td className="px-3 py-4 whitespace-nowrap text-right text-slate-500 border-r border-slate-200">
