@@ -87,13 +87,18 @@ export default function BillingTable({ billings, role }: { billings: any[], role
                                         이월로 대체<br/>(납부 불필요)
                                     </span>
                                 ) : (
-                                    <button
-                                        onClick={() => handleMarkAsPaid(billing.id)}
-                                        disabled={loadingIds.has(billing.id)}
-                                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                                    >
-                                        {loadingIds.has(billing.id) ? '처리중...' : '납부확인'}
-                                    </button>
+                                    <div className="flex flex-col items-end gap-1.5">
+                                        <span className="inline-flex items-center text-red-600 font-medium text-[11px] bg-red-50 px-2 py-0.5 rounded border border-red-100">
+                                            미납 (납부 필요)
+                                        </span>
+                                        <button
+                                            onClick={() => handleMarkAsPaid(billing.id)}
+                                            disabled={loadingIds.has(billing.id)}
+                                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                                        >
+                                            {loadingIds.has(billing.id) ? '처리중...' : '납부확인'}
+                                        </button>
+                                    </div>
                                 )}
                             </td>
                         </tr>

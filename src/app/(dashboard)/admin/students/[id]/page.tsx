@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, User, Phone, MapPin, GraduationCap, Calendar, CreditCard } from 'lucide-react';
+import { format } from 'date-fns';
 import Link from 'next/link';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
@@ -164,6 +165,20 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
                                                 <div className="flex justify-between items-center text-slate-600 px-2 py-1">
                                                     <span className="font-medium flex items-center gap-1.5"><CreditCard className="w-3 h-3 text-slate-400" /> 수강료/기본횟수</span>
                                                     <span>{env.feePerSession.toLocaleString()} ₫ <span className="text-slate-400">×</span> {env.targetSessionsMonth}회</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-slate-600 px-2 py-1 border-b border-slate-100/50 pb-2 mb-2">
+                                                    <span className="font-medium flex items-center gap-1.5"><CreditCard className="w-3 h-3 text-slate-400" /> 이번 달 납부 현황</span>
+                                                    {billing ? (
+                                                        billing.isPaid ? (
+                                                            <span className="text-emerald-700 font-medium bg-emerald-50 px-2 py-0.5 rounded text-xs border border-emerald-100">납부 완료 ({format(new Date(billing.paidAt!), 'MM/dd')})</span>
+                                                        ) : billing.targetSessions === 0 ? (
+                                                            <span className="text-slate-500 font-medium bg-slate-100 px-2 py-0.5 rounded text-xs border border-slate-200">납부 불필요 (이월)</span>
+                                                        ) : (
+                                                            <span className="text-red-600 font-medium bg-red-50 px-2 py-0.5 rounded text-[11px] border border-red-100">미납 (납부 필요)</span>
+                                                        )
+                                                    ) : (
+                                                        <span className="text-slate-400 font-medium bg-slate-50 px-2 py-0.5 rounded text-xs border border-slate-200">청구 전</span>
+                                                    )}
                                                 </div>
                                                 <div className="flex justify-between items-center px-2 py-1.5 bg-blue-50/50 rounded border border-blue-100">
                                                     <span className="font-medium text-slate-700 flex items-center gap-1.5">이번 달 출석 잔여</span>
