@@ -6,7 +6,7 @@ import QRCode from "qrcode";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Upload, Download } from "lucide-react";
-import * as xlsx from "xlsx";
+import ExcelStudentUploader from "@/components/ExcelStudentUploader";
 
 type StudentData = {
     id: string;
@@ -80,138 +80,11 @@ export default function StudentTable({ initialStudents, instructors, currentUser
     };
 
     const handleDownloadTemplate = () => {
-        const templateData = [
-            {
-                "학생명": "홍길동",
-                "학교": "서울초등학교",
-                "학년": "3",
-                "성별(M/F)": "M",
-                "학생연락처": "010-1234-5678",
-                "수강과목": "수학",
-                "담당강사명": instructors.length > 0 ? instructors[0].name : "김교사",
-                "1회수강료": 50000,
-                "월목표횟수": 8,
-                "입금자명": "홍아빠"
-            },
-            {
-                "학생명": "홍길동",
-                "학교": "서울초등학교",
-                "학년": "3",
-                "성별(M/F)": "M",
-                "학생연락처": "010-1234-5678",
-                "수강과목": "영어",
-                "담당강사명": instructors.length > 1 ? instructors[1].name : "이교사",
-                "1회수강료": 45000,
-                "월목표횟수": 8,
-                "입금자명": "홍아빠"
-            }
-        ];
-
-        const worksheet = xlsx.utils.json_to_sheet(templateData);
-        const workbook = xlsx.utils.book_new();
-        xlsx.utils.book_append_sheet(workbook, worksheet, "학생등록양식");
-        
-        // Add note explaining how to add multiple subjects
-        xlsx.utils.sheet_add_aoa(worksheet, [["* 같은 학생이 여러 과목을 수강할 경우, 위 '홍길동' 예시처럼 학생 정보를 동일하게 적고 수강과목/강사 정보만 다르게 하여 여러 줄로 작성하세요."]], { origin: "A5" });
-
-        const wscols = [
-            { wch: 10 }, { wch: 15 }, { wch: 8 }, { wch: 10 }, { wch: 15 },
-            { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 10 }
-        ];
-        worksheet['!cols'] = wscols;
-
-        xlsx.writeFile(workbook, "신규학생_일괄등록_양식.xlsx");
+        // Now handled by ExcelStudentUploader
     };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setIsUploading(true);
-        try {
-            const reader = new FileReader();
-            reader.onload = async (evt) => {
-                try {
-                    const bstr = evt.target?.result;
-                    const workbook = xlsx.read(bstr, { type: "binary" });
-                    const sheetName = workbook.SheetNames[0];
-                    const sheet = workbook.Sheets[sheetName];
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const data = xlsx.utils.sheet_to_json<any>(sheet);
-
-                    // Group by exact student name (and phone if helpful)
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const studentMap = new Map<string, any>();
-
-                    for (const row of data) {
-                        const name = row["학생명"];
-                        if (!name) continue; // skip notes or empty rows
-
-                        // Find instructor
-                        const instructorName = row["담당강사명"];
-                        const inst = instructors.find(i => i.name.trim() === instructorName?.trim());
-                        if (!inst) {
-                            alert(`'${name}' 학생의 담당강사 '${instructorName}'를 찾을 수 없습니다. 등록된 강사명과 정확히 일치해야 합니다.`);
-                            return;
-                        }
-
-                        const enrollment = {
-                            instructorId: inst.id,
-                            subjectName: row["수강과목"],
-                            feePerSession: Number(row["1회수강료"]) || 0,
-                            targetSessionsMonth: Number(row["월목표횟수"]) || 0,
-                            depositorName: row["입금자명"] || "",
-                        };
-
-                        if (studentMap.has(name)) {
-                            studentMap.get(name).enrollments.push(enrollment);
-                        } else {
-                            studentMap.set(name, {
-                                name: name,
-                                school: row["학교"] || "",
-                                grade: row["학년"] ? String(row["학년"]) : "",
-                                gender: row["성별(M/F)"] === "M" || row["성별(M/F)"] === "F" ? row["성별(M/F)"] : null,
-                                phone: row["학생연락처"] || "",
-                                enrollments: [enrollment]
-                            });
-                        }
-                    }
-
-                    const payload = Array.from(studentMap.values());
-                    
-                    if (payload.length === 0) {
-                        alert("업로드할 유효한 학생 데이터가 없습니다.");
-                        return;
-                    }
-
-                    const res = await fetch("/api/admin/students/bulk", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ students: payload })
-                    });
-
-                    if (!res.ok) {
-                        const errData = await res.json();
-                        throw new Error(errData.error || "일괄 등록에 실패했습니다.");
-                    }
-
-                    alert(`${payload.length}명의 학생이 성공적으로 일괄 등록되었습니다.`);
-                    router.refresh();
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                } catch (err: any) {
-                    alert("파일 처리 중 오류: " + err.message);
-                } finally {
-                    setIsUploading(false);
-                    e.target.value = ""; // reset input
-                }
-            };
-            reader.readAsBinaryString(file);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
-            alert("파일 읽기 오류: " + err.message);
-            setIsUploading(false);
-            e.target.value = "";
-        }
+        // Now handled by ExcelStudentUploader
     };
 
     return (
@@ -231,28 +104,8 @@ export default function StudentTable({ initialStudents, instructors, currentUser
                 </div>
                 
                 {(currentUserRole === 'ADMIN' || currentUserRole === 'OWNER') && (
-                    <div className="flex items-center gap-2 bg-white rounded-md p-1 border border-slate-200">
-                        <button
-                            onClick={handleDownloadTemplate}
-                            title="엑셀 양식 다운로드"
-                            className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded transition flex items-center gap-1.5 text-sm font-medium px-3"
-                        >
-                            <Download className="w-4 h-4" /> 양식 다운로드
-                        </button>
-                        <div className="w-[1px] h-6 bg-slate-300 mx-1"></div>
-                        <label
-                            title="엑셀 파일 업로드"
-                            className={`p-1.5 rounded transition flex items-center gap-1.5 text-sm font-medium px-3 cursor-pointer ${isUploading ? "text-slate-400 cursor-not-allowed" : "text-slate-600 hover:text-emerald-600 hover:bg-emerald-50"}`}
-                        >
-                            <Upload className="w-4 h-4" /> 일괄 등록
-                            <input
-                                type="file"
-                                accept=".xlsx, .xls"
-                                className="hidden"
-                                disabled={isUploading}
-                                onChange={handleFileUpload}
-                            />
-                        </label>
+                    <div className="flex items-center gap-2">
+                        <ExcelStudentUploader />
                     </div>
                 )}
             </div>
