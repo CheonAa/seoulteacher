@@ -8,6 +8,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import StudentConsultationBoard from './StudentConsultationBoard';
 import StudentAttendanceCalendar from '@/components/StudentAttendanceCalendar';
+import StudentBillingHistory from './StudentBillingHistory';
 
 export const metadata: Metadata = {
     title: '학생 상세 정보 | 관리자 대시보드',
@@ -40,13 +41,13 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
     const enrollmentIds = student.enrollments.map(e => e.id);
-    const billings = await prisma.monthlyBilling.findMany({
-        where: {
-            enrollmentId: { in: enrollmentIds },
-            year: currentYear,
-            month: currentMonth
-        }
+    const allBillings = await prisma.monthlyBilling.findMany({
+        where: { enrollmentId: { in: enrollmentIds } },
+        include: { enrollment: true },
+        orderBy: [{ year: 'desc' }, { month: 'desc' }]
     });
+    
+    const billings = allBillings.filter(b => b.year === currentYear && b.month === currentMonth);
 
     if (!student) {
         notFound();
@@ -202,6 +203,9 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
                             )}
                         </div>
                     </div>
+
+                    {/* New Billing History Card */}
+                    <StudentBillingHistory billings={allBillings} />
                 </div>
 
                 {/* Right Column: Consultation Board */}
