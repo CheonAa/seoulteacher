@@ -1,0 +1,80 @@
+[
+  {
+    "id": "ab82e736-42be-4792-87e7-dcb99b106e28",
+    "enrollmentId": "d34a71e3-a64f-4095-81e1-9150a59c6dc8",
+    "year": 2026,
+    "month": 1,
+    "targetSessions": 8,
+    "attendedSessions": 1,
+    "carryOverSessions": 7,
+    "isPaid": false,
+    "paidAt": null,
+    "createdAt": "2026-03-15T10:15:07.979Z",
+    "updatedAt": "2026-03-15T10:15:10.032Z"
+  },
+  {
+    "id": "db16058d-6f10-4df0-8d32-5dc2f04ee07d",
+    "enrollmentId": "d34a71e3-a64f-4095-81e1-9150a59c6dc8",
+    "year": 2026,
+    "month": 2,
+    "targetSessions": 0,
+    "attendedSessions": 6,
+    "carryOverSessions": 1,
+    "isPaid": false,
+    "paidAt": null,
+    "createdAt": "2026-03-15T09:56:00.531Z",
+    "updatedAt": "2026-03-15T10:15:10.406Z"
+  },
+  {
+    "id": "e92758ab-1ffa-471d-a027-e7181b128500",
+    "enrollmentId": "5f7a3047-4218-4f92-8237-185aaf3773b3",
+    "year": 2026,
+    "month": 1,
+    "targetSessions": 0,
+    "attendedSessions": 0,
+    "carryOverSessions": 0,
+    "isPaid": false,
+    "paidAt": null,
+    "createdAt": "2026-03-13T15:37:32.826Z",
+    "updatedAt": "2026-03-15T10:14:33.768Z"
+  },
+  {
+    "id": "55d1675e-5578-4a42-99f6-5bc73153ec72",
+    "enrollmentId": "5f7a3047-4218-4f92-8237-185aaf3773b3",
+    "year": 2026,
+    "month": 2,
+    "targetSessions": 0,
+    "attendedSessions": 0,
+    "carryOverSessions": 0,
+    "isPaid": false,
+    "paidAt": null,
+    "createdAt": "2026-03-13T15:38:34.582Z",
+    "updatedAt": "2026-03-15T10:14:34.148Z"
+  },
+  {
+    "id": "c60edf1b-cb2c-46bb-85fe-05126fbd4df5",
+    "enrollmentId": "5f7a3047-4218-4f92-8237-185aaf3773b3",
+    "year": 2026,
+    "month": 3,
+    "targetSessions": 8,
+    "attendedSessions": 2,
+    "carryOverSessions": 6,
+    "isPaid": false,
+    "paidAt": null,
+    "createdAt": "2026-03-13T15:41:49.288Z",
+    "updatedAt": "2026-03-15T10:14:34.521Z"
+  },
+  {
+    "id": "434a1442-3887-4f86-b820-a969011fe917",
+    "enrollmentId": "d34a71e3-a64f-4095-81e1-9150a59c6dc8",
+    "year": 2026,
+    "month": 3,
+    "targetSessions": 0,
+    "attendedSessions": 1,
+    "carryOverSessions": 0,
+    "isPaid": false,
+    "paidAt": null,
+    "createdAt": "2026-03-06T15:55:52.623Z",
+    "updatedAt": "2026-03-15T10:15:10.779Z"
+  }
+]

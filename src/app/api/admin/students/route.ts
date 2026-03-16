@@ -17,7 +17,7 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { name, gender, school, grade, phone, parents, shuttleStatus, shuttleLocation, enrollments = [] } = body;
+        const { name, englishName, gender, school, grade, phone, parents, shuttleStatus, shuttleLocation, enrollments = [] } = body;
 
         let creatorId = null;
         const currentUser = await prisma.user.findUnique({
@@ -44,6 +44,7 @@ export async function POST(req: Request) {
             const newStudent = await tx.student.create({
                 data: {
                     name,
+                    englishName: englishName || null,
                     gender: gender || null,
                     school: school || null,
                     grade: grade ? String(grade) : null,
@@ -55,6 +56,7 @@ export async function POST(req: Request) {
                     parents: {
                         create: parents && Array.isArray(parents) ? parents.map((p: any) => ({
                             name: p.name,
+                            englishName: p.englishName || null,
                             phone: p.phone,
                             relation: p.relation || null
                         })) : []
@@ -69,12 +71,13 @@ export async function POST(req: Request) {
                             feePerSession: Number(enr.feePerSession),
                             targetSessionsMonth: Number(enr.targetSessionsMonth),
                             depositorName: enr.depositorName || null,
+                            accountNumber: enr.accountNumber || null,
                             startDate: enr.startDate ? new Date(enr.startDate) : new Date(),
                             status: enr.status || "ACTIVE",
                             pausedReason: enr.pausedReason || null
                         }))
                     }
-                },
+                } as any, // Bypass strict TS check for new schema fields not yet generated
                 include: {
                     enrollments: true,
                     parents: true

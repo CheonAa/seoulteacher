@@ -62,9 +62,9 @@ export default function AttendanceRoster({
             return date >= weekInterval.start && date <= weekInterval.end;
         });
 
-        // Step 2: Group relevant enrollments by Class Key
+        // Step 2: Group relevant enrollments by Class Key (Base Name without dates in parentheses)
         type StudentMatrix = {
-            enrollment: AttendanceData['enrollment'];
+            enrollments: AttendanceData['enrollment'][];
             // Key: date formatted as yyyy-MM-dd
             records: Record<string, AttendanceData[]>;
             weeklyTotal: number;
@@ -72,15 +72,16 @@ export default function AttendanceRoster({
 
         const classStats: Record<string, Record<string, StudentMatrix>> = {};
 
-        // We should first populate classes/students even if they didn't attend this week, 
-        // but for simplicity in a roster, showing only those who have any activity *or* just scanning all enrollments from attendances dataset.
-        // It's safer to pre-populate all students who ever took this class from the *entire* `attendances` list,
-        // so we see empty checkboxes for them this week.
-        
+        // Helper to extract base subject name
+        const getBaseSubjectName = (fullName: string) => {
+            return fullName.replace(/\(.*?\)/g, '').trim();
+        };
+
         attendances.forEach(att => {
+            const baseSubjectName = getBaseSubjectName(att.enrollment.subjectName);
             const classKey = (role === 'ADMIN' || role === 'OWNER') && att.enrollment.instructor
-                ? `${att.enrollment.subjectName} (강사: ${att.enrollment.instructor.name})`
-                : att.enrollment.subjectName;
+                ? `${baseSubjectName} (강사: ${att.enrollment.instructor.name})`
+                : baseSubjectName;
 
             if (!classStats[classKey]) {
                 classStats[classKey] = {};
@@ -89,18 +90,24 @@ export default function AttendanceRoster({
             const studentId = att.enrollment.student.id;
             if (!classStats[classKey][studentId]) {
                  classStats[classKey][studentId] = {
-                     enrollment: att.enrollment,
+                     enrollments: [],
                      records: {},
                      weeklyTotal: 0
                  }
+            }
+            
+            // Add enrollment if not already in the array
+            if (!classStats[classKey][studentId].enrollments.some(e => e.id === att.enrollment.id)) {
+                classStats[classKey][studentId].enrollments.push(att.enrollment);
             }
         });
 
         // Step 3: Populate weekly attendance matrix
         weeklyAttendances.forEach(att => {
+            const baseSubjectName = getBaseSubjectName(att.enrollment.subjectName);
             const classKey = (role === 'ADMIN' || role === 'OWNER') && att.enrollment.instructor
-                ? `${att.enrollment.subjectName} (강사: ${att.enrollment.instructor.name})`
-                : att.enrollment.subjectName;
+                ? `${baseSubjectName} (강사: ${att.enrollment.instructor.name})`
+                : baseSubjectName;
             
             const studentId = att.enrollment.student.id;
             const matrix = classStats[classKey][studentId];
@@ -119,7 +126,11 @@ export default function AttendanceRoster({
 
         // Step 4: Convert to array and sort
         const sortedClasses = Object.entries(classStats).map(([className, studentMap]) => {
-            const students = Object.values(studentMap).sort((a, b) => a.enrollment.student.name.localeCompare(b.enrollment.student.name));
+            const students = Object.values(studentMap).sort((a, b) => {
+                const nameA = a.enrollments[0]?.student.name || "";
+                const nameB = b.enrollments[0]?.student.name || "";
+                return nameA.localeCompare(nameB);
+            });
             return {
                 className,
                 students
@@ -266,27 +277,49 @@ export default function AttendanceRoster({
                                     </thead>
                                     <tbody className="bg-white divide-y divide-slate-100">
                                         {students.map((studentMatrix) => {
-                                            const attended = studentMatrix.enrollment.attendedSessions || 0;
-                                            const target = studentMatrix.enrollment.targetSessions || 8;
-                                            const remaining = studentMatrix.enrollment.remainingSessions ?? (target - attended > 0 ? target - attended : 0);
-                                            const isGoalReached = attended >= target && target > 0;
+                                            const primaryStudentInfo = studentMatrix.enrollments[0]?.student;
+                                            if (!primaryStudentInfo) return null;
+
+                                            const isGoalReachedAny = studentMatrix.enrollments.some(enr => {
+                                                const att = enr.attendedSessions || 0;
+                                                const tgt = enr.targetSessions || 8;
+                                                return att >= tgt && tgt > 0;
+                                            });
 
                                             return (
-                                                <tr key={studentMatrix.enrollment.student.id} className="group hover:bg-blue-50/20 transition-colors">
+                                                <tr key={primaryStudentInfo.id} className="group hover:bg-blue-50/20 transition-colors">
                                                     {/* Student Name */}
                                                     <td className="px-3 py-3 text-sm font-semibold text-slate-800 border-r border-slate-100 text-center whitespace-nowrap sticky left-0 z-10 bg-white group-hover:bg-[#f4f8ff] shadow-[1px_0_0_0_#f1f5f9] transition-colors">
-                                                        {studentMatrix.enrollment.student.name}
+                                                        {primaryStudentInfo.name}
                                                     </td>
                                                     
                                                     {/* Cumulative Month */}
                                                     <td className={`px-2 py-2 text-center text-xs border-r border-slate-100 ${
-                                                        isGoalReached ? 'bg-red-50' : ''
+                                                        isGoalReachedAny ? 'bg-red-50' : ''
                                                     }`}>
-                                                        <div className={`font-bold text-sm ${isGoalReached ? 'text-red-600' : 'text-slate-700'}`}>
-                                                            {attended} / {target}
-                                                        </div>
-                                                        <div className={`mt-0.5 font-medium ${remaining === 0 ? 'text-red-500' : 'text-blue-600'}`}>
-                                                            {remaining === 0 ? '완료' : `잔여 ${remaining}회`}
+                                                        <div className="flex flex-col gap-2">
+                                                            {studentMatrix.enrollments.map((enr, i) => {
+                                                                const attended = enr.attendedSessions || 0;
+                                                                const target = enr.targetSessions || 8;
+                                                                const remaining = enr.remainingSessions ?? (target - attended > 0 ? target - attended : 0);
+                                                                const isGoalReached = attended >= target && target > 0;
+                                                                
+                                                                // Extract just the part in parentheses to show which enrollment this is, e.g. "1/29~"
+                                                                const dateMatch = enr.subjectName.match(/\((.*?)\)/);
+                                                                const dateLabel = dateMatch ? `[${dateMatch[1]}] ` : '';
+
+                                                                return (
+                                                                    <div key={enr.id} className="flex flex-col text-xs border-b border-black/5 last:border-0 pb-1 last:pb-0">
+                                                                        <div className="text-slate-500 font-medium whitespace-nowrap mb-0.5">{dateLabel.replace('[', '').replace(']', '')}</div>
+                                                                        <div className={`font-bold ${isGoalReached ? 'text-red-600' : 'text-slate-700'}`}>
+                                                                            {attended} / {target}
+                                                                        </div>
+                                                                        <div className={`mt-0.5 font-medium ${remaining === 0 ? 'text-red-500' : 'text-blue-600'}`}>
+                                                                            {remaining === 0 ? '완료' : `잔여 ${remaining}회`}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
                                                         </div>
                                                     </td>
 

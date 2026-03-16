@@ -37,7 +37,7 @@ export default async function BillingPage() {
                 </div>
 
                 {/* Client Component for Interactive Table */}
-                <BillingTable billings={billings} />
+                <BillingTable billings={billings} role={session?.user?.role || ''} />
             </div>
         </div>
     );

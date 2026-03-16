@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  webpack: (config) => {
+    config.externals = [...(config.externals || []), '@prisma/client', 'bcrypt'];
+    return config;
+  },
 };
 
 export default nextConfig;

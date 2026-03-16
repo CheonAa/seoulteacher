@@ -1,0 +1,41 @@
+[
+  {
+    "id": "5cdb97b7-ed66-4fe7-833b-9e88f98534da",
+    "enrollmentId": "abae539d-80a4-4f18-b99a-f6db1de22c90",
+    "year": 2026,
+    "month": 3,
+    "targetSessions": 0,
+    "attendedSessions": 0,
+    "carryOverSessions": 7,
+    "isPaid": false,
+    "paidAt": null,
+    "createdAt": "2026-03-06T06:30:00.202Z",
+    "updatedAt": "2026-03-15T10:27:00.191Z"
+  },
+  {
+    "id": "9b179725-118c-45ac-8dc1-6c1e27d8d93e",
+    "enrollmentId": "abae539d-80a4-4f18-b99a-f6db1de22c90",
+    "year": 2026,
+    "month": 1,
+    "targetSessions": 12,
+    "attendedSessions": 0,
+    "carryOverSessions": 12,
+    "isPaid": true,
+    "paidAt": "2026-03-14T01:02:22.536Z",
+    "createdAt": "2026-03-14T00:33:07.949Z",
+    "updatedAt": "2026-03-15T10:21:38.085Z"
+  },
+  {
+    "id": "d4c930a6-ff6c-4d5f-a4a1-d6da7e1b05bb",
+    "enrollmentId": "abae539d-80a4-4f18-b99a-f6db1de22c90",
+    "year": 2026,
+    "month": 2,
+    "targetSessions": 0,
+    "attendedSessions": 5,
+    "carryOverSessions": 7,
+    "isPaid": false,
+    "paidAt": null,
+    "createdAt": "2026-03-14T00:34:50.668Z",
+    "updatedAt": "2026-03-15T10:21:38.461Z"
+  }
+]

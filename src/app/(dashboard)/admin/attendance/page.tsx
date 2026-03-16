@@ -43,17 +43,31 @@ export default async function AdminAttendancePage() {
     const currentMonth = new Date().getMonth() + 1;
 
     // Fetch billing for these enrollments to calc remaining sessions
+    // BUG FIX: We need the *latest* billing record for each enrollment, not just the current month's, 
+    // because if they didn't attend this month yet, the current month billing might not exist or be accurate for their carryover.
     const enrollmentIds = [...new Set(attendances.map(a => a.enrollmentId))];
-    const billings = await prisma.monthlyBilling.findMany({
+    
+    // Fallback: Fetch all billings for these enrollments and keep the latest one per enrollment
+    const allBillings = await prisma.monthlyBilling.findMany({
         where: {
-            enrollmentId: { in: enrollmentIds },
-            year: currentYear,
-            month: currentMonth
-        }
+            enrollmentId: { in: enrollmentIds }
+        },
+        orderBy: [
+            { year: 'desc' },
+            { month: 'desc' }
+        ]
     });
 
+    // Deduplicate to only keep the most recent billing per enrollment
+    const latestBillingsMap = new Map();
+    for (const b of allBillings) {
+        if (!latestBillingsMap.has(b.enrollmentId)) {
+            latestBillingsMap.set(b.enrollmentId, b);
+        }
+    }
+
     const attendancesWithRemaining = attendances.map(att => {
-        const billing = billings.find(b => b.enrollmentId === att.enrollmentId);
+        const billing = latestBillingsMap.get(att.enrollmentId);
         let remainingSessions = 999; // Default if no billing found yet
         let attendedSessions = 0;
         let targetSessions = 0;

@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { markAsPaid } from '../actions';
 import { format } from 'date-fns';
 import { CheckCircle } from 'lucide-react';
+import ExcelDepositMatcher from './ExcelDepositMatcher';
 
-export default function BillingTable({ billings }: { billings: any[] }) {
+export default function BillingTable({ billings, role }: { billings: any[], role: string }) {
     const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set());
 
     const handleMarkAsPaid = async (id: string) => {
@@ -19,9 +20,15 @@ export default function BillingTable({ billings }: { billings: any[] }) {
     };
 
     return (
-        <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
+        <div className="space-y-4">
+            {role === 'OWNER' && (
+                <div className="flex justify-end px-6 pt-4">
+                    <ExcelDepositMatcher billings={billings} />
+                </div>
+            )}
+            <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200">
+                    <thead className="bg-slate-50">
                     <tr>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                             청구월
@@ -100,6 +107,7 @@ export default function BillingTable({ billings }: { billings: any[] }) {
                     )}
                 </tbody>
             </table>
+        </div>
         </div>
     );
 }

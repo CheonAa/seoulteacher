@@ -21,7 +21,7 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
 
     const [parents, setParents] = useState(initialData?.parents && initialData.parents.length > 0
         ? initialData.parents
-        : [{ name: "", phone: "", relation: "Mother" }]
+        : [{ name: "", englishName: "", phone: "", relation: "Mother" }]
     );
 
     const [enrollments, setEnrollments] = useState<any[]>(initialData?.enrollments && initialData.enrollments.length > 0
@@ -35,6 +35,7 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
             feePerSession: String(enr.feePerSession || "875000"),
             targetSessionsMonth: String(enr.targetSessionsMonth || "8"),
             depositorName: enr.depositorName || "",
+            accountNumber: enr.accountNumber || "",
             status: enr.status || "ACTIVE",
             startDate: enr.startDate ? new Date(enr.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
             pausedReason: enr.pausedReason || null,
@@ -49,6 +50,7 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
             feePerSession: "875000",
             targetSessionsMonth: "8",
             depositorName: "",
+            accountNumber: "",
             status: "ACTIVE",
             startDate: new Date().toISOString().split('T')[0],
             pausedReason: null,
@@ -57,6 +59,7 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
 
     const [formData, setFormData] = useState({
         name: initialData?.name || "",
+        englishName: initialData?.englishName || "",
         gender: initialData?.gender || "M",
         school: initialData?.school || "",
         grade: initialData?.grade || "",
@@ -151,7 +154,7 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
     };
 
     const addParent = () => {
-        setParents([...parents, { name: "", phone: "", relation: "Father" }]);
+        setParents([...parents, { name: "", englishName: "", phone: "", relation: "Father" }]);
     };
 
     const removeParent = (index: number) => {
@@ -170,6 +173,7 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
             feePerSession: "875000",
             targetSessionsMonth: "8",
             depositorName: "",
+            accountNumber: "",
             status: "ACTIVE",
             startDate: new Date().toISOString().split('T')[0],
             pausedReason: null,
@@ -204,6 +208,7 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                 feePerSession: Math.round(Number(enr.feePerSession)),
                 targetSessionsMonth: Number(enr.targetSessionsMonth),
                 depositorName: enr.depositorName || null,
+                accountNumber: enr.accountNumber || null,
                 status: enr.status,
                 startDate: enr.startDate,
                 pausedReason: enr.pausedReason
@@ -518,7 +523,7 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                                         className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                     />
                                 </div>
-                                <div className="md:col-span-2 lg:col-span-4">
+                                <div className="md:col-span-1 lg:col-span-2">
                                     <label className="block text-sm font-medium text-slate-700">입금자명 (예금주)</label>
                                     <input
                                         type="text"
@@ -527,6 +532,17 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                                         onChange={(e) => handleEnrollmentChange(index, "depositorName", e.target.value)}
                                         className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                         placeholder="학생 또는 학부모 이름"
+                                    />
+                                </div>
+                                <div className="md:col-span-1 lg:col-span-2">
+                                    <label className="block text-sm font-medium text-slate-700">입금 계좌번호 (가상계좌 7000...)</label>
+                                    <input
+                                        type="text"
+                                        name="accountNumber"
+                                        value={enr.accountNumber}
+                                        onChange={(e) => handleEnrollmentChange(index, "accountNumber", e.target.value)}
+                                        className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                        placeholder="700012345678"
                                     />
                                 </div>
                             </div>
@@ -542,7 +558,7 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label className="block text-sm font-medium text-slate-700">이름 <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-medium text-slate-700">이름(한글) <span className="text-red-500">*</span></label>
                         <input
                             type="text"
                             name="name"
@@ -551,6 +567,17 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                             onChange={handleChange}
                             className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             placeholder="홍길동"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700">이름(영문) <span className="text-xs text-slate-400 font-normal">(엑셀 입금확인용)</span></label>
+                        <input
+                            type="text"
+                            name="englishName"
+                            value={formData.englishName}
+                            onChange={handleChange}
+                            className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            placeholder="Hong Gildong"
                         />
                     </div>
                     <div>
@@ -648,13 +675,23 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                     {parents.map((parent: any, index: number) => (
                         <div key={index} className="flex flex-col sm:flex-row gap-4 items-end bg-slate-50 p-4 rounded-md border border-slate-200">
                             <div className="flex-1 w-full relative">
-                                <label className="block text-sm font-medium text-slate-700">이름</label>
+                                <label className="block text-sm font-medium text-slate-700">이름(한글)</label>
                                 <input
                                     type="text"
                                     value={parent.name}
                                     onChange={(e) => handleParentChange(index, "name", e.target.value)}
                                     className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                     placeholder="어머니 이름"
+                                />
+                            </div>
+                            <div className="flex-1 w-full relative">
+                                <label className="block text-sm font-medium text-slate-700 text-nowrap">이름(영문) <span className="text-xs text-slate-400 font-normal hidden sm:inline">(엑셀용)</span></label>
+                                <input
+                                    type="text"
+                                    value={parent.englishName}
+                                    onChange={(e) => handleParentChange(index, "englishName", e.target.value)}
+                                    className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    placeholder="Mother English"
                                 />
                             </div>
                             <div className="flex-1 w-full">

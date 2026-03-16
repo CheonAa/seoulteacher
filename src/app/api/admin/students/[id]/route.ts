@@ -62,7 +62,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         }
 
         const body = await req.json();
-        const { name, gender, school, grade, phone, parents, shuttleStatus, shuttleLocation, enrollments = [] } = body;
+        const { name, englishName, gender, school, grade, phone, parents, shuttleStatus, shuttleLocation, enrollments = [] } = body;
 
         // Authorization Rule:
         // OWNER, ADMIN: Can edit anything.
@@ -103,6 +103,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 where: { id },
                 data: {
                     name,
+                    englishName: englishName || null,
                     gender: gender || null,
                     school: school || null,
                     grade: grade ? String(grade) : null,
@@ -122,9 +123,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                     data: parents.map((p: any) => ({
                         studentId: id,
                         name: p.name,
+                        englishName: p.englishName || null,
                         phone: p.phone,
                         relation: p.relation || null
-                    }))
+                    })) as any
                 });
             }
 
@@ -152,6 +154,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                         feePerSession: Number(enr.feePerSession),
                         targetSessionsMonth: Number(enr.targetSessionsMonth),
                         depositorName: enr.depositorName || null,
+                        accountNumber: enr.accountNumber || null,
                         startDate: enr.startDate ? new Date(enr.startDate) : new Date(),
                         status: enr.status || "ACTIVE",
                         pausedReason: enr.pausedReason || null,
@@ -161,7 +164,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                         // 기존 수강 정보 업데이트
                         await tx.enrollment.update({
                             where: { id: enr.id },
-                            data: enrData
+                            data: enrData as any
                         });
                     } else {
                         // 새로운 수강 정보 추가
@@ -169,7 +172,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                             data: {
                                 ...enrData,
                                 studentId: id
-                            }
+                            } as any
                         });
                     }
                 }
