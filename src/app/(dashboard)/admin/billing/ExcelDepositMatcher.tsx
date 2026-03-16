@@ -70,9 +70,12 @@ export default function ExcelDepositMatcher({ billings }: Props) {
                     if (enr.accountNumber && refNumber.includes(enr.accountNumber)) {
                         matchedBy = 'ACCOUNT_NUMBER';
                     }
-                    // 2. Match by Depositor Name exact or included
-                    else if (enr.depositorName && remarks.includes(enr.depositorName.toLowerCase())) {
-                        matchedBy = 'DEPOSITOR_NAME';
+                    // 2. Match by Depositor Name exact or included (supporting multiple names separated by comma)
+                    else if (enr.depositorName) {
+                        const depositorNames = enr.depositorName.split(',').map((n: string) => n.trim().toLowerCase()).filter(Boolean);
+                        if (depositorNames.some((name: string) => remarks.includes(name))) {
+                            matchedBy = 'DEPOSITOR_NAME';
+                        }
                     }
                     // 3. Match by English Name
                     else {

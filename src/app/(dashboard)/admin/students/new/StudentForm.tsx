@@ -531,7 +531,7 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                                         value={enr.depositorName}
                                         onChange={(e) => handleEnrollmentChange(index, "depositorName", e.target.value)}
                                         className="mt-1 block w-full bg-white text-slate-900 border border-slate-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                        placeholder="학생 또는 학부모 이름"
+                                        placeholder="학생 또는 학부모 이름 (여러 명일 경우 쉼표로 구분. 예: 홍길동,홍파파)"
                                     />
                                 </div>
                                 <div className="md:col-span-1 lg:col-span-2">
