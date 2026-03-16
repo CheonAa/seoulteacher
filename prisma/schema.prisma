@@ -1,0 +1,235 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id       String @id @default(uuid())
+  email    String @unique
+  password String
+  name     String
+  role     String @default("INSTRUCTOR") // OWNER, ADMIN, INSTRUCTOR
+
+  color String? @default("#E2E8F0") // Default slate color for timetable background
+
+  instructorProfile InstructorProfile?
+  enrollments       Enrollment[] // 1:N 이지만, 주로 INSTRUCTOR 일때만 사용됨
+
+  shuttleSchedules ShuttleSchedule[]
+  notices          Notice[]
+
+  creatorId String? // Added to track who created this user
+
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model InstructorProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  baseRate     Float @default(0.65) // 기본 강사 비율 65% (0.65)
+  insuranceFee Int   @default(0) // 보험료 고정 공제금액
+
+  bankAccountVND String? // 베트남 계좌
+  bankAccountKRW String? // 한국 계좌
+
+  payrolls Payroll[]
+}
+
+model Student {
+  id      String  @id @default(uuid())
+  name    String
+  gender  String? // M / F
+  school  String?
+  grade   String? // 10, 11, 12 ...
+  phone   String?
+  qrToken String  @unique @default(uuid()) // 고유 QR 코드 토큰
+
+  enrollments Enrollment[]
+  parents     Parent[] // 학생 1명당 여러 학부모 정보 등록 가능
+  consultations Consultation[]
+
+  shuttleStatus   String? @default("NOT_BOARDING") // BOARDING, NOT_BOARDING
+  shuttleLocation String? // 차량 탑승지 (ex: Royal City R5)
+  creatorId       String? // Added to track who created this record
+
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Enrollment {
+  id           String  @id @default(uuid())
+  studentId    String
+  student      Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  instructorId String
+  instructor   User    @relation(fields: [instructorId], references: [id])
+
+  subjectName         String // 수강과목 (ex. 인터수학)
+  curriculum          String? @default("KOREAN") // KOREAN, INTERNATIONAL
+  period              String? @default("SEMESTER") // SEMESTER, VACATION
+  gradeGroup          String? @default("ELEM") // ELEM, MID, HIGH, G7_9, G10_12
+  feePerSession       Int // 1회차 수강료
+  targetSessionsMonth Int     @default(8) // 월 목표 횟수 (보통 8회)
+  depositorName       String? // 입금자명 (학부모 또는 본인 등)
+
+  startDate    DateTime  @default(now())
+  endDate      DateTime?
+  status       String    @default("ACTIVE") // ACTIVE, CLOSED, PAUSED
+  pausedReason String?
+
+  attendances     Attendance[]
+  monthlyBillings MonthlyBilling[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Attendance {
+  id           String     @id @default(uuid())
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  date      DateTime @default(now())
+  status    String   @default("PRESENT") // PRESENT, ABSENT, EXCUSED
+  method    String   @default("MANUAL") // MANUAL, QR_SCAN
+  creatorId String?  // Added to track who created this record
+
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MonthlyBilling {
+  id           String     @id @default(uuid())
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  year  Int
+  month Int
+
+  targetSessions    Int // 해당 월 목표 횟수 (예: 8)
+  attendedSessions  Int // 실제 출석 횟수
+  carryOverSessions Int // 이월 회차 (목표 - 출석)
+
+  isPaid Boolean   @default(false)
+  paidAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Payroll {
+  id                  String            @id @default(uuid())
+  instructorProfileId String
+  instructorProfile   InstructorProfile @relation(fields: [instructorProfileId], references: [id], onDelete: Cascade)
+
+  year  Int
+  month Int
+
+  totalTuitionVND      Int // 총수업료 (VND)
+  insuranceDeduction   Int // 보험료 공제
+  netVietnamSalary     Int // 베트남 급여 (실수령, 원장님 입력값)
+  grossVietnamSalary   Int // 3.5% 역계산된 세전 베트남 급여 (자동 계산)
+  tax35Deduction       Int // 3.5% 공제액 (자동 계산)
+  remainingVND         Int // 잔여 급여 (베트남 송금용)
+
+  exchangeRate         Float // 환율 적용치
+  transferFee          Int // 송금 수수료
+  exchangedKRW         Int // 환전 KRW (잔여급여 / 환율)
+  preTaxKRW            Int // 한국 급여 세전 (환전 KRW - 송금 수수료)
+  tax33Deduction       Int // 3.3% 공제
+  netPaidKRW           Int // 최종 한국 통장 지급액 (세후)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Parent {
+  id        String  @id @default(uuid())
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  name     String
+  phone    String
+  relation String? // Mother, Father, Grandparent, etc. (모, 부, 조부모 등)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SystemSettings {
+  id        String   @id @default(uuid())
+  key       String   @unique // ex: SYSTEM_LOGO, COMPANY_NAME, COMPANY_PHONE, etc.
+  value     String // Base64 string for logo, or text for other settings
+  updatedAt DateTime @updatedAt
+}
+
+model ShuttleSchedule {
+  id           String   @id @default(uuid())
+  vehicleName  String // ex: "1호 차량", "3호 차량", "5호 차량"
+  dayOfWeek    String // "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"
+  roundIndex   Int // To group pick-ups and drop-offs horizontally (e.g., 1, 2, 3...)
+  runType      String // "PICKUP" or "DROPOFF"
+  time         String // ex: "16:45"
+  locationName String // ex: "Royal City R5"
+  students     String? // ex: "진소율, 윤재희"
+  instructorId String? // To grab color assigned to instructor
+  color        String? // Fallback explicit color
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  instructor User? @relation(fields: [instructorId], references: [id])
+}
+
+model Notice {
+  id          String   @id @default(uuid())
+  title       String
+  content     String   // HTML content from react-quill
+  authorId    String
+  views        Int      @default(0)
+  isImportant  Boolean  @default(false)
+  externalLink String?  // Add external link field
+  
+  author      User               @relation(fields: [authorId], references: [id])
+  attachments NoticeAttachment[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model NoticeAttachment {
+  id        String   @id @default(uuid())
+  name      String
+  url       String   // e.g. /uploads/notice/123.pdf
+  noticeId  String
+  
+  notice    Notice   @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Consultation {
+  id        String   @id @default(uuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  date      DateTime @default(now()) // 상담 진행 날짜
+  content   String   @db.Text // 상담 내용 (HTML 가능)
+  creatorId String   // 작성자 ID (User.id)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
