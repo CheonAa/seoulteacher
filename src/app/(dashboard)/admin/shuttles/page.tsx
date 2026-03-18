@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+
 import { Save, Plus, Trash2, ArrowLeft, Bus, Upload, Download } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 import * as xlsx from "xlsx";
+import { getRoundByTime, TARGET_ROUNDS, ROUND_LABELS } from "@/lib/shuttleUtils";
 
 type ScheduleItem = {
     id?: string; // Optional since it might be new
@@ -96,9 +98,10 @@ export default function AdminShuttlePage() {
         setSaving(true);
         setMessage(null);
         try {
-            // Clean up empty records and strings
-            const cleanSchedules = schedules.filter(s => s.time.trim() || s.locationName.trim() || s.students.trim()).map(s => ({
+            // Clean up empty records and dynamically sync the roundIndex with the set time
+            const cleanSchedules = schedules.filter((s: ScheduleItem) => s.time.trim() || s.locationName.trim() || s.students.trim()).map((s: ScheduleItem) => ({
                 ...s,
+                roundIndex: getRoundByTime(s.time, s.runType),
                 students: s.students.trim() || null,
             }));
 
@@ -206,11 +209,11 @@ export default function AdminShuttlePage() {
     };
 
     const addRound = () => {
-        const maxRound = schedules.length > 0 ? Math.max(...schedules.map(s => s.roundIndex)) : 0;
+        const maxRound = schedules.length > 0 ? Math.max(...schedules.map((s: ScheduleItem) => s.roundIndex)) : 0;
         const newRound = maxRound + 1;
 
         // Auto-add one empty pickup and dropoff for the new round
-        setSchedules(prev => [
+        setSchedules((prev: ScheduleItem[]) => [
             ...prev,
             { vehicleName: selectedVehicle, dayOfWeek: selectedDay, roundIndex: newRound, runType: "PICKUP", time: "", locationName: "", students: "", instructorId: null, color: "#e2e8f0" },
             { vehicleName: selectedVehicle, dayOfWeek: selectedDay, roundIndex: newRound, runType: "DROPOFF", time: "", locationName: "", students: "", instructorId: null, color: "#e2e8f0" },
@@ -219,22 +222,25 @@ export default function AdminShuttlePage() {
 
     const removeRound = (roundIdx: number) => {
         if (!confirm(`${roundIdx}회차 일정을 모두 삭제하시겠습니까?`)) return;
-        setSchedules(prev => prev.filter(s => s.roundIndex !== roundIdx));
+        setSchedules((prev: ScheduleItem[]) => prev.filter((s: ScheduleItem) => s.roundIndex !== roundIdx));
     };
 
     const addStop = (roundIdx: number, type: "PICKUP" | "DROPOFF") => {
-        setSchedules(prev => [
+        const labelStr = ROUND_LABELS[roundIdx];
+        const defaultTime = type === "PICKUP" ? labelStr?.pickUp || "" : labelStr?.dropOff || "";
+        
+        setSchedules((prev: ScheduleItem[]) => [
             ...prev,
-            { vehicleName: selectedVehicle, dayOfWeek: selectedDay, roundIndex: roundIdx, runType: type, time: "", locationName: "", students: "", instructorId: null, color: "#e2e8f0" },
+            { vehicleName: selectedVehicle, dayOfWeek: selectedDay, roundIndex: roundIdx, runType: type, time: defaultTime, locationName: "", students: "", instructorId: null, color: "#e2e8f0" },
         ]);
     };
 
     const removeStop = (idx: number) => {
-        setSchedules(prev => prev.filter((_, i) => i !== idx));
+        setSchedules((prev: ScheduleItem[]) => prev.filter((_: ScheduleItem, i: number) => i !== idx));
     };
 
     const updateStop = (idx: number, field: keyof ScheduleItem, value: string | null) => {
-        setSchedules(prev => {
+        setSchedules((prev: ScheduleItem[]) => {
             const next = [...prev];
             next[idx] = { ...next[idx], [field]: value };
 
@@ -254,17 +260,24 @@ export default function AdminShuttlePage() {
         });
     };
 
-    // Group schedules for rendering
-    const roundGroups = schedules.reduce((acc, curr, globalIdx) => {
-        if (!acc[curr.roundIndex]) {
-            acc[curr.roundIndex] = { pickUps: [], dropOffs: [] };
+    // Group schedules dynamically by time for rendering
+    const roundGroups = schedules.reduce((acc: Record<number, { pickUps: { item: ScheduleItem, globalIdx: number }[], dropOffs: { item: ScheduleItem, globalIdx: number }[] }>, curr: ScheduleItem, globalIdx: number) => {
+        const rIndex = getRoundByTime(curr.time, curr.runType);
+        if (!acc[rIndex]) {
+            acc[rIndex] = { pickUps: [], dropOffs: [] };
         }
-        if (curr.runType === "PICKUP") acc[curr.roundIndex].pickUps.push({ item: curr, globalIdx });
-        else acc[curr.roundIndex].dropOffs.push({ item: curr, globalIdx });
+        if (curr.runType === "PICKUP") acc[rIndex].pickUps.push({ item: curr, globalIdx });
+        else acc[rIndex].dropOffs.push({ item: curr, globalIdx });
         return acc;
     }, {} as Record<number, { pickUps: { item: ScheduleItem, globalIdx: number }[], dropOffs: { item: ScheduleItem, globalIdx: number }[] }>);
 
-    const rounds = Object.keys(roundGroups).map(Number).sort((a, b) => a - b);
+    // Sort visually by time inside groups
+    TARGET_ROUNDS.forEach(r => {
+        if (roundGroups[r]) {
+            roundGroups[r].pickUps.sort((a: { item: ScheduleItem, globalIdx: number }, b: { item: ScheduleItem, globalIdx: number }) => a.item.time.localeCompare(b.item.time));
+            roundGroups[r].dropOffs.sort((a: { item: ScheduleItem, globalIdx: number }, b: { item: ScheduleItem, globalIdx: number }) => a.item.time.localeCompare(b.item.time));
+        }
+    });
 
     const renderStopInputs = (runType: "PICKUP" | "DROPOFF", stops: { item: ScheduleItem, globalIdx: number }[], roundIdx: number) => (
         <div className="space-y-3">
@@ -466,26 +479,22 @@ export default function AdminShuttlePage() {
                 <div className="p-12 text-center text-slate-500 bg-white rounded-lg border border-slate-200 shadow-sm">데이터를 불러오는 중입니다...</div>
             ) : (
                 <div className="space-y-6">
-                    {rounds.map((roundIdx) => {
-                        const round = roundGroups[roundIdx];
+                    {TARGET_ROUNDS.map((roundIdx) => {
+                        const round = roundGroups[roundIdx] || { pickUps: [], dropOffs: [] };
+                        const labelInfo = ROUND_LABELS[roundIdx];
+                        
                         return (
                             <div key={roundIdx} className="bg-slate-50 shadow-sm border border-slate-200 rounded-lg overflow-hidden">
                                 <div className="bg-slate-200 text-slate-800 px-4 py-3 flex justify-between items-center border-b border-slate-300">
                                     <h3 className="font-bold text-base flex items-center gap-2">
-                                        <span className="bg-slate-800 text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-xs">
+                                        <span className="bg-slate-800 text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-xs shadow-sm">
                                             {roundIdx}
                                         </span>
-                                        회차 일정 (Round {roundIdx})
+                                        {roundIdx}라운드 <span className="text-sm font-medium text-slate-600 block sm:inline mt-1 sm:mt-0 ml-1"> (등원 {labelInfo?.pickUp} / 하원 {labelInfo?.dropOff})</span>
                                     </h3>
-                                    <button
-                                        onClick={() => removeRound(roundIdx)}
-                                        className="text-sm text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-3 py-1 rounded transition"
-                                    >
-                                        회차 삭제
-                                    </button>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-200">
+                                <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-200 relative">
                                     <div className="p-4 bg-white/50">
                                         {renderStopInputs("PICKUP", round.pickUps, roundIdx)}
                                     </div>
@@ -496,15 +505,6 @@ export default function AdminShuttlePage() {
                             </div>
                         );
                     })}
-
-                    <div className="flex justify-center pt-4 pb-12">
-                        <button
-                            onClick={addRound}
-                            className="bg-white border-2 border-dashed border-indigo-300 text-indigo-600 hover:bg-indigo-50 font-bold py-3 px-8 rounded-lg shadow-sm flex items-center gap-2 transition"
-                        >
-                            <Plus className="w-5 h-5" /> 새 회차 (Round) 추가하기
-                        </button>
-                    </div>
                 </div>
             )}
         </div>

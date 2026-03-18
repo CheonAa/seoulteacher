@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Printer } from "lucide-react";
+import { getRoundByTime, TARGET_ROUNDS, ROUND_LABELS } from "@/lib/shuttleUtils";
 
 type ScheduleItem = {
     id: string;
@@ -89,22 +90,34 @@ export default function PrintScheduleClient() {
 
     VEHICLES_ORDER.forEach(v => {
         groupedData[v] = {};
+        TARGET_ROUNDS.forEach(r => {
+            groupedData[v][r] = { pickUps: [], dropOffs: [] };
+        });
     });
 
     schedules.forEach(item => {
         const v = item.vehicleName;
-        if (!groupedData[v]) groupedData[v] = {};
-        
-        const r = item.roundIndex;
-        if (!groupedData[v][r]) {
-            groupedData[v][r] = { pickUps: [], dropOffs: [] };
+        if (!groupedData[v]) {
+            groupedData[v] = { 1: { pickUps: [], dropOffs: [] }, 2: { pickUps: [], dropOffs: [] }, 3: { pickUps: [], dropOffs: [] }, 4: { pickUps: [], dropOffs: [] } };
         }
+        
+        const r = getRoundByTime(item.time, item.runType);
 
         if (item.runType === "PICKUP") {
             groupedData[v][r].pickUps.push(item);
         } else {
             groupedData[v][r].dropOffs.push(item);
         }
+    });
+
+    // Sort times inside each round
+    Object.keys(groupedData).forEach(v => {
+        TARGET_ROUNDS.forEach(r => {
+            if (groupedData[v][r]) {
+                groupedData[v][r].pickUps.sort((a, b) => a.time.localeCompare(b.time));
+                groupedData[v][r].dropOffs.sort((a, b) => a.time.localeCompare(b.time));
+            }
+        });
     });
 
     return (
@@ -130,10 +143,9 @@ export default function PrintScheduleClient() {
                 <div className="grid grid-cols-3 gap-8 h-full">
                     {VEHICLES_ORDER.map((vehicle, vIdx) => {
                         const vehicleRoundsMap = groupedData[vehicle];
-                        const rounds = Object.keys(vehicleRoundsMap).map(Number).sort((a,b) => a-b);
                         const vNum = vehicle.charAt(0);
                         const phoneInfo = PHONE_NUMBERS[vehicle] ? `/ ${PHONE_NUMBERS[vehicle]}` : "";
-
+                        
                         return (
                             <div key={vehicle} className="flex flex-col h-full border-r-[3px] border-yellow-400 last:border-r-0 pr-4 last:pr-0">
                                 {/* Header */}
@@ -149,23 +161,27 @@ export default function PrintScheduleClient() {
                                     </h3>
                                 </div>
 
-                                <div className="flex text-[11px] font-bold text-black text-center mb-1">
-                                    <div className="flex-1">Pick-Up</div>
-                                    <div className="flex-1">Drop_off</div>
+                                <div className="flex text-[11px] font-bold text-black text-center mb-1 bg-gray-100 border-y border-black py-0.5">
+                                    <div className="flex-1 border-r border-black">등원 (Pick-Up)</div>
+                                    <div className="flex-1">하원 (Drop-Off)</div>
                                 </div>
 
                                 {/* Rounds Data */}
                                 <div className="flex flex-col flex-1">
-                                    {rounds.map((round, rIdx) => {
-                                        const rData = vehicleRoundsMap[round];
-                                        const isLast = rIdx === rounds.length - 1;
+                                    {TARGET_ROUNDS.map((round, rIdx) => {
+                                        const rData = vehicleRoundsMap[round] || { pickUps: [], dropOffs: [] };
+                                        const label = ROUND_LABELS[round];
+                                        const isLast = rIdx === TARGET_ROUNDS.length - 1;
                                         return (
                                             <div 
                                                 key={round} 
-                                                className={`flex border-b-2 border-black border-dotted ${isLast ? 'border-none' : 'pb-2 mb-2'} pt-1`}
+                                                className={`flex border-b border-black ${isLast ? 'border-none' : 'pb-1 mb-1'} pt-1 flex-1`}
                                             >
                                                 {/* Pick-Up Side */}
-                                                <div className="w-1/2 pr-1 border-r border-black flex flex-col gap-1.5">
+                                                <div className="w-1/2 pr-1 border-r border-black flex flex-col gap-1.5 relative">
+                                                    <div className="text-[10px] font-bold text-blue-800 mb-0.5 border-b border-dashed border-gray-300 pb-0.5">
+                                                        {round}R - {label.pickUp}
+                                                    </div>
                                                     {rData.pickUps.map((item, idx) => (
                                                         <div key={idx} className="flex items-start text-[10px]">
                                                             <div className="w-9 font-bold flex-shrink-0 text-black">{item.time}</div>
@@ -190,7 +206,10 @@ export default function PrintScheduleClient() {
                                                 </div>
 
                                                 {/* Drop-Off Side */}
-                                                <div className="w-1/2 pl-2 flex flex-col gap-1.5">
+                                                <div className="w-1/2 pl-2 flex flex-col gap-1.5 relative">
+                                                    <div className="text-[10px] font-bold text-red-800 mb-0.5 border-b border-dashed border-gray-300 pb-0.5">
+                                                        {round}R - {label.dropOff}
+                                                    </div>
                                                     {rData.dropOffs.map((item, idx) => (
                                                         <div key={idx} className="flex items-start text-[10px]">
                                                             <div className="w-9 font-bold flex-shrink-0 text-black">{item.time}</div>

@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Bus, Settings2, UploadCloud, Loader2, CheckCircle2, Printer } from "lucide-react";
 import clsx from "clsx";
+import { getRoundByTime, TARGET_ROUNDS, ROUND_LABELS } from "@/lib/shuttleUtils";
 
 type ScheduleItem = {
     id: string;
@@ -79,17 +80,24 @@ export default function ShuttlesViewerPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedDate, selectedVehicle]);
 
-    // Group by RoundIndex
+    // Group by mapping time to specific target round groups
     const roundGroups = schedules.reduce((acc, curr) => {
-        if (!acc[curr.roundIndex]) {
-            acc[curr.roundIndex] = { pickUps: [], dropOffs: [] };
+        const rIndex = getRoundByTime(curr.time, curr.runType);
+        if (!acc[rIndex]) {
+            acc[rIndex] = { pickUps: [], dropOffs: [] };
         }
-        if (curr.runType === "PICKUP") acc[curr.roundIndex].pickUps.push(curr);
-        else acc[curr.roundIndex].dropOffs.push(curr);
+        if (curr.runType === "PICKUP") acc[rIndex].pickUps.push(curr);
+        else acc[rIndex].dropOffs.push(curr);
         return acc;
     }, {} as Record<number, { pickUps: ScheduleItem[], dropOffs: ScheduleItem[] }>);
 
-    const rounds = Object.keys(roundGroups).map(Number).sort((a, b) => a - b);
+    // Sort times inside each round to ensure strict ordered presentation
+    TARGET_ROUNDS.forEach(r => {
+        if (roundGroups[r]) {
+            roundGroups[r].pickUps.sort((a, b) => a.time.localeCompare(b.time));
+            roundGroups[r].dropOffs.sort((a, b) => a.time.localeCompare(b.time));
+        }
+    });
 
     // Simple helper to pick the right bg color based on hex string or fallback
     const getBgColor = (item: ScheduleItem) => {
@@ -228,24 +236,36 @@ export default function ShuttlesViewerPage() {
 
                 {loading ? (
                     <div className="p-12 text-center text-slate-500">시간표를 불러오는 중...</div>
-                ) : rounds.length === 0 ? (
-                    <div className="p-12 text-center text-slate-500 border-t border-slate-200">
-                        등록된 차량 시간표가 없습니다.
-                    </div>
                 ) : (
                     <div className="p-0">
-                        {rounds.map((roundIdx, i) => {
-                            const round = roundGroups[roundIdx];
+                        <div className="hidden md:grid grid-cols-2 bg-slate-100 border-b border-slate-300">
+                            <div className="p-3 text-center font-bold text-slate-700 border-r border-slate-300">등원 (Pick-Up)</div>
+                            <div className="p-3 text-center font-bold text-slate-700">하원 (Drop-Off)</div>
+                        </div>
+                        {TARGET_ROUNDS.map((roundIdx, i) => {
+                            const round = roundGroups[roundIdx] || { pickUps: [], dropOffs: [] };
+                            const label = ROUND_LABELS[roundIdx] || { pickUp: "", dropOff: "" };
+                            
                             return (
                                 <div key={roundIdx} className={clsx(
-                                    "grid grid-cols-1 md:grid-cols-2",
-                                    i !== rounds.length - 1 ? "border-b border-dashed border-slate-300" : ""
+                                    "grid grid-cols-1 md:grid-cols-2 relative",
+                                    i !== TARGET_ROUNDS.length - 1 ? "border-b border-solid border-slate-300" : ""
                                 )}>
+                                    {/* Round Label Tag */}
+                                    <div className="absolute left-1/2 -translate-x-1/2 top-4 bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full z-10 hidden md:block border border-blue-200 shadow-sm">
+                                        {roundIdx}라운드
+                                    </div>
+
                                     {/* Pick Up Column */}
-                                    <div className="p-6 md:border-r border-slate-300 relative">
-                                        {i === 0 && <div className="absolute top-0 left-0 w-full text-center mt-2 font-bold text-slate-700 hidden md:block">Pick-Up</div>}
-                                        <div className={clsx("space-y-4", i === 0 ? "mt-8" : "")}>
-                                            <div className="md:hidden font-bold text-slate-500 mb-2 border-b pb-1">Pick-Up</div>
+                                    <div className="p-6 md:border-r border-slate-300 relative pt-12">
+                                        <div className="absolute top-4 left-6 text-sm font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-100 hidden md:block">
+                                            등원 {label.pickUp}
+                                        </div>
+                                        <div className="md:hidden font-bold text-blue-700 mb-2 border-b border-slate-200 pb-2 mt-2 bg-blue-50 px-3 py-1.5 rounded">
+                                            {roundIdx}라운드 등원 ({label.pickUp})
+                                        </div>
+                                        
+                                        <div className="space-y-4">
                                             {round.pickUps.length === 0 ? (
                                                 <div className="text-sm text-slate-400 italic py-2">승차 일정 없음</div>
                                             ) : (
@@ -275,10 +295,15 @@ export default function ShuttlesViewerPage() {
                                     </div>
 
                                     {/* Drop Off Column */}
-                                    <div className="p-6 relative bg-slate-50/50">
-                                        {i === 0 && <div className="absolute top-0 left-0 w-full text-center mt-2 font-bold text-slate-700 hidden md:block">Drop_off</div>}
-                                        <div className={clsx("space-y-4", i === 0 ? "mt-8" : "")}>
-                                            <div className="md:hidden font-bold text-slate-500 mb-2 border-b pb-1">Drop_off</div>
+                                    <div className="p-6 relative bg-slate-50/50 pt-12">
+                                        <div className="absolute top-4 left-6 text-sm font-bold text-orange-700 bg-orange-50 px-2 py-1 rounded border border-orange-100 hidden md:block">
+                                            하원 {label.dropOff}
+                                        </div>
+                                        <div className="md:hidden font-bold text-orange-700 mb-2 border-b border-slate-200 pb-2 mt-4 bg-orange-50 px-3 py-1.5 rounded">
+                                            {roundIdx}라운드 하원 ({label.dropOff})
+                                        </div>
+                                        
+                                        <div className="space-y-4">
                                             {round.dropOffs.length === 0 ? (
                                                 <div className="text-sm text-slate-400 italic py-2">하차 일정 없음</div>
                                             ) : (

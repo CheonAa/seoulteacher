@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Bus, Clock } from "lucide-react";
 import clsx from "clsx";
 import Link from "next/link";
+import { getRoundByTime, TARGET_ROUNDS, ROUND_LABELS } from "@/lib/shuttleUtils";
 
 type ScheduleItem = {
     id: string;
@@ -72,14 +73,13 @@ export default function DashboardShuttleSchedule() {
     // Group by Vehicle -> RoundIndex -> RunType -> Time -> Location
     const vehiclesData = schedules.reduce((acc, curr) => {
         if (!acc[curr.vehicleName]) {
-            acc[curr.vehicleName] = {};
+            acc[curr.vehicleName] = { 1: { pickUps: [], dropOffs: [] }, 2: { pickUps: [], dropOffs: [] }, 3: { pickUps: [], dropOffs: [] }, 4: { pickUps: [], dropOffs: [] } };
         }
-        if (!acc[curr.vehicleName][curr.roundIndex]) {
-            acc[curr.vehicleName][curr.roundIndex] = { pickUps: [], dropOffs: [] };
-        }
+        
+        const rIndex = getRoundByTime(curr.time, curr.runType);
 
-        if (curr.runType === "PICKUP") acc[curr.vehicleName][curr.roundIndex].pickUps.push(curr);
-        else acc[curr.vehicleName][curr.roundIndex].dropOffs.push(curr);
+        if (curr.runType === "PICKUP") acc[curr.vehicleName][rIndex].pickUps.push(curr);
+        else acc[curr.vehicleName][rIndex].dropOffs.push(curr);
 
         return acc;
     }, {} as Record<string, Record<number, { pickUps: ScheduleItem[], dropOffs: ScheduleItem[] }>>);
@@ -205,19 +205,25 @@ export default function DashboardShuttleSchedule() {
                                         </h4>
                                     </div>
 
-                                    <div className="divide-y divide-slate-100">
-                                        {rounds.map((roundIdx) => {
-                                            const round = roundsData[roundIdx];
+                            <div className="divide-y divide-slate-100">
+                                        {TARGET_ROUNDS.map((roundIdx) => {
+                                            const round = roundsData[roundIdx] || { pickUps: [], dropOffs: [] };
+                                            const label = ROUND_LABELS[roundIdx];
                                             const groupedPickups = groupStops(round.pickUps);
                                             const groupedDropoffs = groupStops(round.dropOffs);
 
                                             return (
-                                                <div key={roundIdx} className="grid grid-cols-1 md:grid-cols-2">
+                                                <div key={roundIdx} className="grid grid-cols-1 md:grid-cols-2 relative">
+                                                    {/* Central Round Badge */}
+                                                    <div className="absolute left-1/2 -ml-8 -translate-y-1/2 top-4 bg-white text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded-full z-10 hidden md:block border border-slate-200 shadow-sm">
+                                                        {roundIdx}R
+                                                    </div>
+
                                                     {/* Pick Up Column */}
                                                     <div className="p-3 md:border-r border-slate-100 bg-white">
-                                                        <div className="text-xs font-bold text-slate-600 mb-2 border-b border-slate-200 pb-1 flex justify-between">
+                                                        <div className="text-xs font-bold text-blue-700 mb-2 border-b border-slate-200 pb-1 flex justify-between">
                                                             <span>승차 (Pick-Up)</span>
-                                                            <span className="text-slate-400 font-normal">Round {roundIdx}</span>
+                                                            <span className="text-blue-500 font-normal">{label.pickUp}</span>
                                                         </div>
                                                         {groupedPickups.length === 0 ? (
                                                             <div className="text-xs text-slate-400 italic py-1">승차 일정 없음</div>
@@ -252,9 +258,9 @@ export default function DashboardShuttleSchedule() {
 
                                                     {/* Drop Off Column */}
                                                     <div className="p-3 bg-slate-50/50">
-                                                        <div className="text-xs font-bold text-slate-700 mb-2 border-b border-slate-300 pb-1 flex justify-between">
+                                                        <div className="text-xs font-bold text-orange-700 mb-2 border-b border-slate-300 pb-1 flex justify-between">
                                                             <span>하차 (Drop-Off)</span>
-                                                            <span className="text-slate-400 font-normal">Round {roundIdx}</span>
+                                                            <span className="text-orange-500 font-normal">{label.dropOff}</span>
                                                         </div>
                                                         {groupedDropoffs.length === 0 ? (
                                                             <div className="text-xs text-slate-400 italic py-1">하차 일정 없음</div>

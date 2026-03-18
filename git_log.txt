@@ -1,0 +1,10 @@
+﻿b68c5ae - 2026-03-16: fix(payroll): text color visible in year/month select dropdowns
+9c19c63 - 2026-03-16: feat(student): filter enrollments and billings for instructors
+a39c10a - 2026-03-16: fix(payroll): text color visible in input fields
+89ae353 - 2026-03-16: fix(billing): restore BillingTable.tsx and fix client side crash
+ff20dbe - 2026-03-16: refactor(billing): redirect payment confirmation to student details and show full history
+fcbadc1 - 2026-03-16: feat(billing): display payment status on student detail and billing table
+4d21cfe - 2026-03-16: feat(students): bulk excel upload for students, parents, and enrollments
+92cf0da - 2026-03-16: feat(billing): support comma-separated multiple depositor names
+10e75cd - 2026-03-16: fix(build): remove webpack override to fix Vercel turbopack build
+8297dae - 2026-03-16: fix(schema): restore inadvertently emptied schema file
