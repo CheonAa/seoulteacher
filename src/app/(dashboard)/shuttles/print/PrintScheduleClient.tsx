@@ -139,19 +139,19 @@ export default function PrintScheduleClient() {
 
             {/* A4 Landscape Container */}
             <div className="mx-auto w-[297mm] h-[209mm] bg-white p-[10mm] relative box-border overflow-hidden print:w-full print:h-full print:p-0 print:m-0">
-                {/* 3 Columns Grid */}
-                <div className="grid grid-cols-3 gap-8 h-full">
+                {/* 3 Columns Grid (Restructured into Row-by-Row for Perfect Alignment) */}
+                <div className="grid grid-cols-3 gap-x-8 grid-rows-[auto_auto_1fr_1fr_1fr_1fr] h-full">
+                    
+                    {/* Row 1: Headers */}
                     {VEHICLES_ORDER.map((vehicle, vIdx) => {
-                        const vehicleRoundsMap = groupedData[vehicle];
                         const vNum = vehicle.charAt(0);
                         const phoneInfo = PHONE_NUMBERS[vehicle] ? `/ ${PHONE_NUMBERS[vehicle]}` : "";
                         
                         return (
-                            <div key={vehicle} className="flex flex-col h-full border-r-[3px] border-yellow-400 last:border-r-0 pr-4 last:pr-0">
-                                {/* Header */}
+                            <div key={`header-${vehicle}`} className="border-r-[3px] border-yellow-400 last:border-r-0 pr-4 last:pr-0">
                                 <div className="text-center mb-2 relative">
                                     {/* Date Stamp Top Right */}
-                                    <div className="absolute -top-2 right-0 text-[10px] text-gray-500 uppercase">{formattedDateHeader}</div>
+                                    {vIdx === 2 && <div className="absolute -top-2 right-0 text-[10px] text-gray-500 uppercase">{formattedDateHeader}</div>}
                                     
                                     <h2 className="text-[17px] font-bold text-[#1a5b8e]">
                                         {vNum}호 차량 / Xe số {vNum} {phoneInfo}
@@ -160,84 +160,91 @@ export default function PrintScheduleClient() {
                                         {targetKorDay} <span className="ml-4 uppercase">{targetDay}</span>
                                     </h3>
                                 </div>
+                            </div>
+                        );
+                    })}
 
-                                <div className="flex text-[11px] font-bold text-black text-center mb-1 bg-gray-100 border-y border-black py-0.5">
-                                    <div className="flex-1 border-r border-black">등원 (Pick-Up)</div>
-                                    <div className="flex-1">하원 (Drop-Off)</div>
-                                </div>
+                    {/* Row 2: Title Bars */}
+                    {VEHICLES_ORDER.map((vehicle) => (
+                        <div key={`title-${vehicle}`} className="border-r-[3px] border-yellow-400 last:border-r-0 pr-4 last:pr-0">
+                            <div className="flex text-[11px] font-bold text-black text-center mb-1 bg-gray-100 border-y border-black py-0.5">
+                                <div className="flex-1 border-r border-black">등원 (Pick-Up)</div>
+                                <div className="flex-1">하원 (Drop-Off)</div>
+                            </div>
+                        </div>
+                    ))}
 
-                                {/* Rounds Data */}
-                                <div className="flex flex-col flex-1">
-                                    {TARGET_ROUNDS.map((round, rIdx) => {
-                                        const rData = vehicleRoundsMap[round] || { pickUps: [], dropOffs: [] };
-                                        const label = ROUND_LABELS[round];
-                                        const isLast = rIdx === TARGET_ROUNDS.length - 1;
-                                        return (
-                                            <div 
-                                                key={round} 
-                                                className={`flex border-b border-black ${isLast ? 'border-none' : 'pb-1 mb-1'} pt-1 flex-1`}
-                                            >
-                                                {/* Pick-Up Side */}
-                                                <div className="w-1/2 pr-1 border-r border-black flex flex-col gap-1.5 relative">
-                                                    <div className="text-[10px] font-bold text-blue-800 mb-0.5 border-b border-dashed border-gray-300 pb-0.5">
-                                                        {round}R - {label.pickUp}
-                                                    </div>
-                                                    {rData.pickUps.map((item, idx) => (
-                                                        <div key={idx} className="flex items-start text-[10px]">
-                                                            <div className="w-9 font-bold flex-shrink-0 text-black">{item.time}</div>
-                                                            <div className="flex-1 font-bold truncate pr-1">{item.locationName}</div>
-                                                            <div className="w-14 flex-shrink-0 flex flex-col items-end gap-[1px]">
-                                                                {item.students?.split(',').map((student, sIdx) => {
-                                                                    const trimmed = student.trim();
-                                                                    if(!trimmed) return null;
-                                                                    return (
-                                                                        <span 
-                                                                            key={sIdx} 
-                                                                            className="px-1 text-[9px] font-bold border border-transparent leading-snug whitespace-nowrap min-w-[34px] text-center"
-                                                                            style={{ backgroundColor: getBgColor(item) !== "transparent" ? getBgColor(item) : undefined }}
-                                                                        >
-                                                                            {trimmed}
-                                                                        </span>
-                                                                    )
-                                                                })}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                    {/* Rows 3-6: Rounds */}
+                    {TARGET_ROUNDS.map((round, rIdx) => {
+                        const isLast = rIdx === TARGET_ROUNDS.length - 1;
+                        const label = ROUND_LABELS[round];
 
-                                                {/* Drop-Off Side */}
-                                                <div className="w-1/2 pl-2 flex flex-col gap-1.5 relative">
-                                                    <div className="text-[10px] font-bold text-red-800 mb-0.5 border-b border-dashed border-gray-300 pb-0.5">
-                                                        {round}R - {label.dropOff}
-                                                    </div>
-                                                    {rData.dropOffs.map((item, idx) => (
-                                                        <div key={idx} className="flex items-start text-[10px]">
-                                                            <div className="w-9 font-bold flex-shrink-0 text-black">{item.time}</div>
-                                                            <div className="flex-1 font-bold truncate pr-1">{item.locationName}</div>
-                                                            <div className="w-14 flex-shrink-0 flex flex-col items-end gap-[1px]">
-                                                                {item.students?.split(',').map((student, sIdx) => {
-                                                                    const trimmed = student.trim();
-                                                                    if(!trimmed) return null;
-                                                                    return (
-                                                                        <span 
-                                                                            key={sIdx} 
-                                                                            className="px-1 text-[9px] font-bold border border-transparent leading-snug whitespace-nowrap min-w-[34px] text-center"
-                                                                            style={{ backgroundColor: getBgColor(item) !== "transparent" ? getBgColor(item) : undefined }}
-                                                                        >
-                                                                            {trimmed}
-                                                                        </span>
-                                                                    )
-                                                                })}
-                                                            </div>
-                                                        </div>
-                                                    ))}
+                        return VEHICLES_ORDER.map((vehicle) => {
+                            const rData = groupedData[vehicle]?.[round] || { pickUps: [], dropOffs: [] };
+                            
+                            return (
+                                <div 
+                                    key={`round-${round}-${vehicle}`} 
+                                    className={`border-r-[3px] border-yellow-400 last:border-r-0 pr-4 last:pr-0 flex border-black ${!isLast ? 'border-b pb-1 mb-1' : ''} pt-1 overflow-hidden`}
+                                >
+                                    {/* Pick-Up Side */}
+                                    <div className="w-1/2 pr-1 border-r border-black flex flex-col gap-1.5 relative overflow-hidden">
+                                        <div className="text-[10px] font-bold text-blue-800 mb-0.5 border-b border-dashed border-gray-300 pb-0.5 flex-shrink-0">
+                                            {round}R - {label?.pickUp || ""}
+                                        </div>
+                                        {rData.pickUps.map((item, idx) => (
+                                            <div key={`pu-${idx}`} className="flex items-start text-[10px]">
+                                                <div className="w-9 font-bold flex-shrink-0 text-black">{item.time}</div>
+                                                <div className="flex-1 font-bold truncate pr-1">{item.locationName}</div>
+                                                <div className="w-14 flex-shrink-0 flex flex-col items-end gap-[1px]">
+                                                    {item.students?.split(',').map((student, sIdx) => {
+                                                        const trimmed = student.trim();
+                                                        if(!trimmed) return null;
+                                                        return (
+                                                            <span 
+                                                                key={`pu-stu-${sIdx}`} 
+                                                                className="px-1 text-[9px] font-bold border border-transparent leading-snug whitespace-nowrap min-w-[34px] text-center"
+                                                                style={{ backgroundColor: getBgColor(item) !== "transparent" ? getBgColor(item) : undefined }}
+                                                            >
+                                                                {trimmed}
+                                                            </span>
+                                                        )
+                                                    })}
                                                 </div>
                                             </div>
-                                        )
-                                    })}
+                                        ))}
+                                    </div>
+
+                                    {/* Drop-Off Side */}
+                                    <div className="w-1/2 pl-2 flex flex-col gap-1.5 relative overflow-hidden">
+                                        <div className="text-[10px] font-bold text-red-800 mb-0.5 border-b border-dashed border-gray-300 pb-0.5 flex-shrink-0">
+                                            {round}R - {label?.dropOff || ""}
+                                        </div>
+                                        {rData.dropOffs.map((item, idx) => (
+                                            <div key={`do-${idx}`} className="flex items-start text-[10px]">
+                                                <div className="w-9 font-bold flex-shrink-0 text-black">{item.time}</div>
+                                                <div className="flex-1 font-bold truncate pr-1">{item.locationName}</div>
+                                                <div className="w-14 flex-shrink-0 flex flex-col items-end gap-[1px]">
+                                                    {item.students?.split(',').map((student, sIdx) => {
+                                                        const trimmed = student.trim();
+                                                        if(!trimmed) return null;
+                                                        return (
+                                                            <span 
+                                                                key={`do-stu-${sIdx}`} 
+                                                                className="px-1 text-[9px] font-bold border border-transparent leading-snug whitespace-nowrap min-w-[34px] text-center"
+                                                                style={{ backgroundColor: getBgColor(item) !== "transparent" ? getBgColor(item) : undefined }}
+                                                            >
+                                                                {trimmed}
+                                                            </span>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                        )
+                            );
+                        });
                     })}
                 </div>
             </div>
