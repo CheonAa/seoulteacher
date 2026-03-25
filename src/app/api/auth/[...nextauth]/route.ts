@@ -61,7 +61,7 @@ export const authOptions: NextAuthOptions = {
     pages: {
         signIn: "/login", // Custom login page
     },
-    secret: process.env.NEXTAUTH_SECRET || "fallback_secret_for_local_dev",
+    secret: process.env.NEXTAUTH_SECRET,
 };
 
 const handler = NextAuth(authOptions);
