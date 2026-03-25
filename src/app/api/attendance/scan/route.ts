@@ -15,15 +15,17 @@ export async function POST(req: Request) {
         });
 
         if (!student) return NextResponse.json({ error: '유효하지 않은 QR 코드입니다.' }, { status: 404 });
-        if (student.enrollments.length === 0) return NextResponse.json({ error: '수강 중인 과목이 없습니다.' }, { status: 400 });
+
+        const activeEnrollments = student.enrollments.filter((e: any) => e.status === 'ACTIVE');
+        if (activeEnrollments.length === 0) return NextResponse.json({ error: '활성화된 수강 과목이 없습니다.' }, { status: 400 });
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
-        // 여기서는 첫 번째 수강과목에 대해서만 출석 처리 (추후 복수 수강 선택 로직 추가 가능)
-        const enrollment = student.enrollments[0];
+        // 활성화된 첫 번째 수강과목에 대해서 일단 출석 처리
+        const enrollment = activeEnrollments[0];
 
         // 오늘 이미 출석했는지 확인
         const existing = await prisma.attendance.findFirst({

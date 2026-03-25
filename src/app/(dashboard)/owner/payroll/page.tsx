@@ -273,6 +273,31 @@ export default function OwnerPayrollPage() {
                 </div>
             )}
 
+            {!loading && payrolls.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col justify-center">
+                        <p className="text-sm font-medium text-slate-500">당월 총 수업료 발생액 (VND)</p>
+                        <p className="text-3xl font-black text-slate-900 mt-2">
+                            {new Intl.NumberFormat('ko-KR').format(payrolls.reduce((sum, p) => sum + p.totalTuitionVND, 0))} <span className="text-base font-medium text-slate-500">₫</span>
+                        </p>
+                    </div>
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col justify-center relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                        <p className="text-sm font-medium text-slate-500 pl-2">강사 베트남 지급 총액 (VND)</p>
+                        <p className="text-3xl font-black text-blue-600 mt-2 pl-2">
+                            {new Intl.NumberFormat('ko-KR').format(payrolls.reduce((sum, p) => sum + p.netVietnamSalary, 0))} <span className="text-base font-medium text-blue-400">₫</span>
+                        </p>
+                    </div>
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col justify-center relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                        <p className="text-sm font-medium text-slate-500 pl-2">강사 한국 지급 총액 (KRW)</p>
+                        <p className="text-3xl font-black text-emerald-600 mt-2 pl-2">
+                            {new Intl.NumberFormat('ko-KR').format(payrolls.reduce((sum, p) => sum + (calculateRow(p).netPaidKRW || 0), 0))} <span className="text-base font-medium text-emerald-400">₩</span>
+                        </p>
+                    </div>
+                </div>
+            )}
+
             <div className="bg-white shadow-sm border border-slate-200 rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-slate-200 text-sm">

@@ -8,6 +8,7 @@ export default function KioskPage() {
     const [scanResult, setScanResult] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [recentScans, setRecentScans] = useState<{name: string, time: string}[]>([]);
     const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
     useEffect(() => {
@@ -41,6 +42,9 @@ export default function KioskPage() {
                     setError(data.error || '출석 처리 중 오류가 발생했습니다.');
                 } else {
                     setScanResult(data.message);
+                    if (data.student) {
+                        setRecentScans(prev => [{ name: data.student.name, time: new Date().toLocaleTimeString('ko-KR') }, ...prev].slice(0, 5));
+                    }
                 }
             } catch (err) {
                 setError('네트워크 오류가 발생했습니다.');
@@ -100,6 +104,23 @@ export default function KioskPage() {
 
                         {!isLoading && !scanResult && !error && (
                             <p className="text-slate-500 font-medium text-lg">카메라에 QR 코드를 비춰주세요</p>
+                        )}
+                    </div>
+
+                    {/* Recent Scans */}
+                    <div className="mt-6 border-t border-slate-200 pt-6 text-left">
+                        <h3 className="text-sm font-semibold text-slate-500 mb-3 ml-1">오늘의 최근 출석</h3>
+                        {recentScans.length === 0 ? (
+                            <p className="text-sm text-slate-400 text-center py-4 bg-slate-50 rounded-xl">아직 출석한 학생이 없습니다.</p>
+                        ) : (
+                            <ul className="space-y-2">
+                                {recentScans.map((scan, idx) => (
+                                    <li key={idx} className="flex justify-between items-center text-sm bg-slate-50/50 border border-slate-100 px-4 py-3 rounded-xl animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                        <span className="font-semibold text-slate-700">{scan.name}</span>
+                                        <span className="text-xs font-medium text-slate-400">{scan.time}</span>
+                                    </li>
+                                ))}
+                            </ul>
                         )}
                     </div>
                 </div>

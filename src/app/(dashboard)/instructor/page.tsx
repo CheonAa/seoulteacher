@@ -3,6 +3,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
 import { UserCheck, CalendarDays, DollarSign, Calculator } from "lucide-react";
 import DashboardShuttleSchedule from "@/components/dashboard/DashboardShuttleSchedule";
+import InstructorSalaryChart from "@/components/dashboard/InstructorSalaryChart";
 
 export default async function InstructorDashboard() {
     const session = await getServerSession(authOptions);
@@ -115,6 +116,18 @@ export default async function InstructorDashboard() {
                     </div>
                 </div>
             </div>
+
+            <InstructorSalaryChart 
+                totalTuitionVND={totalTuitionVND}
+                instructorShareVND={instructorShareVND}
+                insuranceFee={insuranceFee}
+                tax35Deduction={tax35Deduction}
+                remainingVND={remainingVND}
+                finalKRW={finalKRW}
+                transferFee={transferFee}
+                krwTax33={krwTax33}
+                finalNetKRW={finalNetKRW}
+            />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* 실시간 명세서 카드 */}

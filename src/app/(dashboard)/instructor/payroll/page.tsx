@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Wallet, CalendarDays, RefreshCw, AlertCircle } from "lucide-react";
+import InstructorPayrollChart from "@/components/dashboard/InstructorPayrollChart";
 
 type PayrollData = {
     instructorProfileId: string;
@@ -138,6 +139,8 @@ export default function InstructorPayrollPage() {
                     </div>
                     
                     <div className="p-6 sm:p-8 space-y-8">
+                        <InstructorPayrollChart payroll={payroll} />
+
                         {/* 베트남 급여 섹션 */}
                         <section>
                             <h3 className="text-lg font-bold text-slate-900 flex items-center mb-4 border-b border-slate-200 pb-2">
