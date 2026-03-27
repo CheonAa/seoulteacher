@@ -145,19 +145,6 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                      targetEnr.feePerSession = String(Math.round(totalFee / sessions));
                 }
             }
-            if (field === 'carryOverSessions' || field === 'carryOverAmount') {
-                const amount = field === 'carryOverAmount' ? Number(value) : Number(targetEnr.carryOverAmount || 0);
-                const sessions = field === 'carryOverSessions' ? Number(value) : Number(targetEnr.carryOverSessions || 0);
-                if (sessions > 0) {
-                    targetEnr.feePerSession = String(Math.round(amount / sessions));
-                }
-            } else if (field === 'feePerSession') {
-                const sessions = Number(targetEnr.carryOverSessions || 0);
-                const fee = Number(value);
-                if (sessions > 0) {
-                    targetEnr.carryOverAmount = String(sessions * fee);
-                }
-            }
             
             newEnrollments[index] = targetEnr;
             return newEnrollments;
@@ -557,7 +544,14 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                                     />
                                 </div>
                                 <div className="md:col-span-1 lg:col-span-1">
-                                    <label className="block text-sm font-medium text-slate-700">이월 총금액</label>
+                                    <label className="block text-sm font-medium text-slate-700">
+                                        이월 총금액
+                                        {Number(enr.carryOverSessions) > 0 && Number(enr.carryOverAmount) > 0 && (
+                                            <span className="text-xs text-blue-600 font-normal ml-2">
+                                                (이월 1회 단가: {Math.round(Number(enr.carryOverAmount) / Number(enr.carryOverSessions)).toLocaleString()}₫)
+                                            </span>
+                                        )}
+                                    </label>
                                     <input
                                         type="number"
                                         name="carryOverAmount"
