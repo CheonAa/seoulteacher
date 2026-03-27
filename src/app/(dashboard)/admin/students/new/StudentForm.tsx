@@ -145,10 +145,18 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                      targetEnr.feePerSession = String(Math.round(totalFee / sessions));
                 }
             }
-            if (field === 'carryOverSessions' || field === 'feePerSession') {
+            if (field === 'carryOverSessions' || field === 'carryOverAmount') {
+                const amount = field === 'carryOverAmount' ? Number(value) : Number(targetEnr.carryOverAmount || 0);
                 const sessions = field === 'carryOverSessions' ? Number(value) : Number(targetEnr.carryOverSessions || 0);
-                const fee = field === 'feePerSession' ? Number(value) : Number(targetEnr.feePerSession || 0);
-                targetEnr.carryOverAmount = String(sessions * fee);
+                if (sessions > 0) {
+                    targetEnr.feePerSession = String(Math.round(amount / sessions));
+                }
+            } else if (field === 'feePerSession') {
+                const sessions = Number(targetEnr.carryOverSessions || 0);
+                const fee = Number(value);
+                if (sessions > 0) {
+                    targetEnr.carryOverAmount = String(sessions * fee);
+                }
             }
             
             newEnrollments[index] = targetEnr;
@@ -549,7 +557,7 @@ export default function StudentForm({ instructors, initialData, isEdit = false }
                                     />
                                 </div>
                                 <div className="md:col-span-1 lg:col-span-1">
-                                    <label className="block text-sm font-medium text-slate-700">이월 금액 <span className="text-xs text-slate-400 font-normal">(자동계산)</span></label>
+                                    <label className="block text-sm font-medium text-slate-700">이월 총금액</label>
                                     <input
                                         type="number"
                                         name="carryOverAmount"
