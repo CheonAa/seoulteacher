@@ -41,6 +41,65 @@ export async function POST(req: Request) {
 
         // 학생 및 수강 정보 트랜잭션으로 생성 (parents 배열 포함)
         const student = await prisma.$transaction(async (tx) => {
+            let existingStudent = null;
+            if (name && phone) {
+                existingStudent = await tx.student.findFirst({
+                    where: { name, phone }
+                });
+            }
+
+            if (existingStudent) {
+                // 1. 기존 학생에 수강 정보 추가
+                for (const enr of enrollments) {
+                    await tx.enrollment.create({
+                        data: {
+                            studentId: existingStudent.id,
+                            instructorId: enr.instructorId,
+                            subjectName: enr.subjectName,
+                            curriculum: enr.curriculum || "KOREAN",
+                            period: enr.period || "SEMESTER",
+                            gradeGroup: enr.gradeGroup || "ELEM",
+                            feePerSession: Number(enr.feePerSession),
+                            targetSessionsMonth: Number(enr.targetSessionsMonth),
+                            depositorName: enr.depositorName || null,
+                            accountNumber: enr.accountNumber || null,
+                            carryOverSessions: Number(enr.carryOverSessions) || 0,
+                            carryOverAmount: Number(enr.carryOverAmount) || 0,
+                            startDate: enr.startDate ? new Date(enr.startDate) : new Date(),
+                            status: enr.status || "ACTIVE",
+                            pausedReason: enr.pausedReason || null
+                        } as any
+                    });
+                }
+
+                // 2. 새로운 학부모 정보가 올 경우 추가 (중복 확인)
+                if (parents && Array.isArray(parents)) {
+                    for (const p of parents) {
+                        const existingParent = await tx.parent.findFirst({
+                            where: { studentId: existingStudent.id, name: p.name, phone: p.phone }
+                        });
+                        if (!existingParent) {
+                            await tx.parent.create({
+                                data: {
+                                    studentId: existingStudent.id,
+                                    name: p.name,
+                                    englishName: p.englishName || null,
+                                    phone: p.phone,
+                                    relation: p.relation || null
+                                }
+                            });
+                        }
+                    }
+                }
+
+                // 업데이트된 기존 학생 리턴
+                return await tx.student.findUnique({
+                    where: { id: existingStudent.id },
+                    include: { enrollments: true, parents: true }
+                });
+            }
+
+            // 3. 신규 학생일 경우 새로 생성
             const newStudent = await tx.student.create({
                 data: {
                     name,
@@ -72,6 +131,8 @@ export async function POST(req: Request) {
                             targetSessionsMonth: Number(enr.targetSessionsMonth),
                             depositorName: enr.depositorName || null,
                             accountNumber: enr.accountNumber || null,
+                            carryOverSessions: Number(enr.carryOverSessions) || 0,
+                            carryOverAmount: Number(enr.carryOverAmount) || 0,
                             startDate: enr.startDate ? new Date(enr.startDate) : new Date(),
                             status: enr.status || "ACTIVE",
                             pausedReason: enr.pausedReason || null

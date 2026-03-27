@@ -98,6 +98,11 @@ export default function ExcelStudentUploader() {
                 const feePerSessionStr = String(row['1회차 수강료'] || '');
                 const feePerSession = feePerSessionStr ? Number(feePerSessionStr.replace(/,/g, '')) : null;
 
+                const carryOverSessionsStr = String(row['이월 횟수'] || '0');
+                const carryOverSessions = Number(carryOverSessionsStr.replace(/,/g, '')) || 0;
+                const carryOverAmountStr = String(row['이월 금액'] || '0');
+                const carryOverAmount = Number(carryOverAmountStr.replace(/,/g, '')) || 0;
+
                 studentData.enrollments.push({
                     instructorEmail: String(row['담당강사이메일'] || '').trim(),
                     subjectName: String(row['수강과목명'] || '').trim(),
@@ -108,6 +113,8 @@ export default function ExcelStudentUploader() {
                     startDate: row['시작일자'] ? new Date(row['시작일자']).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                     depositorName: String(row['입금자명'] || '').trim(),
                     accountNumber: String(row['입금계좌번호'] || '').trim(),
+                    carryOverSessions: carryOverSessions,
+                    carryOverAmount: carryOverAmount,
                     // Pass parsed fee, or null to auto-calculate on backend
                     feePerSession: feePerSession, 
                 });
@@ -177,6 +184,8 @@ export default function ExcelStudentUploader() {
                 '시작일자': '2024-03-01',
                 '입금자명': '홍아빠,홍엄마',
                 '입금계좌번호': '7000123123',
+                '이월 횟수': 0,
+                '이월 금액': 0,
                 '1회차 수강료': '' // 비워두면 자동 계산됨
             },
             {
@@ -201,6 +210,8 @@ export default function ExcelStudentUploader() {
                 '시작일자': '2024-03-10',
                 '입금자명': '김엄마',
                 '입금계좌번호': '',
+                '이월 횟수': 0,
+                '이월 금액': 0,
                 '1회차 수강료': '' // 비워두면 자동 계산됨
             }
         ]);
@@ -260,7 +271,8 @@ export default function ExcelStudentUploader() {
                                         </h3>
                                         <div className="mt-4 max-h-96 overflow-y-auto pr-2">
                                             <div className="bg-slate-50 p-3 rounded-md mb-4 border border-slate-200 text-sm">
-                                                총 <strong>{matches.length}</strong>명의 독립된 학생과 전체 <strong>{matches.reduce((acc, match) => acc + match.enrollments.length, 0)}</strong>건의 수강 신청 건이 감지되었습니다.
+                                                총 <strong>{matches.length}</strong>명의 독립된 학생과 전체 <strong>{matches.reduce((acc, match) => acc + match.enrollments.length, 0)}</strong>건의 수강 신청 건이 감지되었습니다.<br/>
+                                                <span className="text-xs text-blue-600 mt-1 inline-block">* 이름과 학생연락처가 기존 등록된 학생과 동일할 경우, 신규 생성되지 않고 기존 계정에 수강만 자동으로 추가(병합)됩니다.</span>
                                             </div>
                                             <ul className="divide-y divide-gray-200">
                                                 {matches.map((student, i) => (

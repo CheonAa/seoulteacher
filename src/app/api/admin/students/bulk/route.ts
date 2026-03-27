@@ -124,30 +124,63 @@ export async function POST(req: Request) {
                         targetSessionsMonth: enr.targetSessionsMonth,
                         depositorName: enr.depositorName || null,
                         accountNumber: enr.accountNumber || null,
+                        carryOverSessions: Number(enr.carryOverSessions) || 0,
+                        carryOverAmount: Number(enr.carryOverAmount) || 0,
                         startDate: enr.startDate ? new Date(enr.startDate) : new Date(),
                         status: "ACTIVE"
                     };
                 });
 
-                // Workaround for `any` type issues with prisma generated types not matching new schemas locally
-                const studentCreatePayload: any = {
-                    data: {
-                        name: s.name,
-                        englishName: s.englishName || null,
-                        gender: s.gender || null,
-                        school: s.school || null,
-                        grade: s.grade || null,
-                        phone: s.phone || null,
-                        qrToken: uuidv4(),
-                        shuttleStatus: s.shuttleStatus || "NOT_BOARDING",
-                        shuttleLocation: s.shuttleLocation || null,
-                        creatorId,
-                        parents: { create: parentsData },
-                        enrollments: { create: enrollmentsData }
+                let existingStudent = null;
+                if (s.name && s.phone) {
+                    existingStudent = await tx.student.findFirst({
+                        where: { name: s.name, phone: s.phone }
+                    });
+                }
+
+                if (existingStudent) {
+                    // 1. Add enrollments
+                    for (const enrData of enrollmentsData) {
+                        await tx.enrollment.create({
+                            data: {
+                                ...enrData,
+                                studentId: existingStudent.id
+                            }
+                        });
                     }
-                };
-                
-                await tx.student.create(studentCreatePayload);
+
+                    // 2. Add parents
+                    for (const p of parentsData) {
+                        const existingParent = await tx.parent.findFirst({
+                            where: { studentId: existingStudent.id, name: p.name, phone: p.phone }
+                        });
+                        if (!existingParent) {
+                            await tx.parent.create({
+                                data: { ...p, studentId: existingStudent.id }
+                            });
+                        }
+                    }
+                } else {
+                    // Workaround for `any` type issues with prisma generated types not matching new schemas locally
+                    const studentCreatePayload: any = {
+                        data: {
+                            name: s.name,
+                            englishName: s.englishName || null,
+                            gender: s.gender || null,
+                            school: s.school || null,
+                            grade: s.grade || null,
+                            phone: s.phone || null,
+                            qrToken: uuidv4(),
+                            shuttleStatus: s.shuttleStatus || "NOT_BOARDING",
+                            shuttleLocation: s.shuttleLocation || null,
+                            creatorId,
+                            parents: { create: parentsData },
+                            enrollments: { create: enrollmentsData }
+                        }
+                    };
+                    
+                    await tx.student.create(studentCreatePayload);
+                }
             }
         });
 
