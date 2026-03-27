@@ -100,7 +100,7 @@ export default function ExcelStudentUploader() {
 
                 const carryOverSessionsStr = String(row['이월 횟수'] || '0');
                 const carryOverSessions = Number(carryOverSessionsStr.replace(/,/g, '')) || 0;
-                const carryOverAmountStr = String(row['이월 금액'] || '0');
+                const carryOverAmountStr = String(row['이월 총금액'] || row['이월 금액'] || '0');
                 const carryOverAmount = Number(carryOverAmountStr.replace(/,/g, '')) || 0;
 
                 studentData.enrollments.push({
@@ -185,7 +185,7 @@ export default function ExcelStudentUploader() {
                 '입금자명': '홍아빠,홍엄마',
                 '입금계좌번호': '7000123123',
                 '이월 횟수': 0,
-                '이월 금액': 0,
+                '이월 총금액': 0,
                 '1회차 수강료': '' // 비워두면 자동 계산됨
             },
             {
@@ -211,7 +211,7 @@ export default function ExcelStudentUploader() {
                 '입금자명': '김엄마',
                 '입금계좌번호': '',
                 '이월 횟수': 0,
-                '이월 금액': 0,
+                '이월 총금액': 0,
                 '1회차 수강료': '' // 비워두면 자동 계산됨
             }
         ]);
