@@ -5,8 +5,9 @@ import { Search, QrCode, X, Edit2, Trash2, AlertTriangle, User } from "lucide-re
 import QRCode from "qrcode";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Upload, Download } from "lucide-react";
+import { Upload, Download, List, FileSpreadsheet } from "lucide-react";
 import ExcelStudentUploader from "@/components/ExcelStudentUploader";
+import * as XLSX from 'xlsx';
 
 type StudentData = {
     id: string;
@@ -40,6 +41,9 @@ export default function StudentTable({ initialStudents, instructors, currentUser
     // Bulk Delete state
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+    
+    // Download state
+    const [isDownloading, setIsDownloading] = useState(false);
     
     // Excel upload state
     const [isUploading, setIsUploading] = useState(false);
@@ -135,6 +139,85 @@ export default function StudentTable({ initialStudents, instructors, currentUser
         setSelectedIds(newSet);
     };
 
+    const handleBriefDownload = () => {
+        if (filteredStudents.length === 0) {
+            alert("다운로드할 결과가 존재하지 않습니다.");
+            return;
+        }
+
+        const data = filteredStudents.map(student => ({
+            "이름": student.name,
+            "학교": student.school || "-",
+            "학년": student.grade ? `${student.grade}학년` : "-",
+            "성별": student.gender === 'M' ? '남' : student.gender === 'F' ? '여' : "-",
+            "연락처": student.phone || "-",
+            "출결 QR코드": student.qrToken,
+            "수강 과목 요약": student.enrollments.map(e => `${e.subjectName}(${e.instructor.name})`).join(", ") || "내역 없음"
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "학생 현황 (간략)");
+        XLSX.writeFile(wb, `SeoulTeacher_학생현황(간략)_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
+    const handleDetailedDownload = async () => {
+        if (filteredStudents.length === 0) {
+            alert("다운로드할 결과가 존재하지 않습니다.");
+            return;
+        }
+
+        setIsDownloading(true);
+        try {
+            const studentIds = filteredStudents.map(s => s.id);
+            const res = await fetch('/api/admin/students/export', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: studentIds })
+            });
+
+            if (!res.ok) {
+                throw new Error("데이터 조회 실패");
+            }
+
+            const detailedStudents = await res.json();
+
+            // Flatten data
+            const data = detailedStudents.map((student: any) => {
+                const parentsInfo = student.parents && student.parents.length > 0 
+                    ? student.parents.map((p: any) => `${p.name}(${p.relation || '관계미상'}, ${p.phone})`).join(" / ")
+                    : "정보 없음";
+
+                const enrollmentsInfo = student.enrollments && student.enrollments.length > 0
+                    ? student.enrollments.map((e: any) => `과목:${e.subjectName}, 강사:${e.instructor.name}, 입금자:${e.depositorName || '-'}, 수강료:${e.feePerSession}`).join(" | ")
+                    : "내역 없음";
+
+                return {
+                    "이름": student.name,
+                    "영문이름": student.englishName || "-",
+                    "성별": student.gender === 'M' ? '남' : student.gender === 'F' ? '여' : "-",
+                    "연락처": student.phone || "-",
+                    "학교": student.school || "-",
+                    "학년": student.grade ? `${student.grade}학년` : "-",
+                    "셔틀 탑승 정보": student.shuttleStatus === 'BOARDING' ? `탑승 (${student.shuttleLocation || '-'})` : "미탑승",
+                    "학부모 정보": parentsInfo,
+                    "수강 상세 내역": enrollmentsInfo
+                };
+            });
+
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "학생 상세 정보");
+            XLSX.writeFile(wb, `SeoulTeacher_학생상세리스트_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+        } catch (error) {
+            console.error(error);
+            alert("상세 다운로드 중 오류가 발생했습니다.");
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
     const handleDownloadTemplate = () => {
         // Now handled by ExcelStudentUploader
     };
@@ -160,7 +243,17 @@ export default function StudentTable({ initialStudents, instructors, currentUser
                 </div>
                 
                 {(currentUserRole === 'ADMIN' || currentUserRole === 'OWNER') && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                        <div className="flex items-center gap-2 border-r border-slate-200 pr-3 mr-1">
+                            <button onClick={handleBriefDownload} disabled={isDownloading} className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors gap-1.5" title="현재 표기된 학생 현황만 빠르게 다운로드">
+                                <List className="w-4 h-4 text-emerald-600" />
+                                <span className="hidden sm:inline">간략 정보 다운로드</span>
+                            </button>
+                            <button onClick={handleDetailedDownload} disabled={isDownloading} className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors gap-1.5 disabled:opacity-50" title="필터링된 학생의 학부모, 수강 정보 등 상세 데이터를 병합하여 다운로드">
+                                <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                                <span className="hidden sm:inline">{isDownloading ? '생성 중...' : '상세 정보 다운로드'}</span>
+                            </button>
+                        </div>
                         {selectedIds.size > 0 && (
                             <button
                                 onClick={handleBulkDelete}
