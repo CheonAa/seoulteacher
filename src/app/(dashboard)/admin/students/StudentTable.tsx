@@ -37,6 +37,10 @@ export default function StudentTable({ initialStudents, instructors, currentUser
     const [studentToDelete, setStudentToDelete] = useState<StudentData | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     
+    // Bulk Delete state
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+    
     // Excel upload state
     const [isUploading, setIsUploading] = useState(false);
 
@@ -79,6 +83,58 @@ export default function StudentTable({ initialStudents, instructors, currentUser
         }
     };
 
+    const handleBulkDelete = async () => {
+        if (selectedIds.size === 0) return;
+        if (!confirm(`선택한 ${selectedIds.size}명의 학생을 삭제하시겠습니까?\n주의: 등록된 학부모, 수강 내역, 출결 및 급여 관련 데이터가 영구 삭제됩니다.`)) return;
+
+        setIsBulkDeleting(true);
+        try {
+            const res = await fetch(`/api/admin/students/bulk-delete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: Array.from(selectedIds) })
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "일괄 삭제에 실패했습니다.");
+            }
+
+            const data = await res.json();
+            alert(data.message || `${selectedIds.size}명의 학생이 삭제되었습니다.`);
+            setSelectedIds(new Set());
+            router.refresh();
+        } catch (error: any) {
+            console.error(error);
+            alert(error.message || "삭제 중 오류가 발생했습니다.");
+        } finally {
+            setIsBulkDeleting(false);
+        }
+    };
+
+    const toggleSelectAll = () => {
+        // filter out students that the current user is not allowed to delete if they are just an ADMIN
+        const selectableStudents = filteredStudents.filter(s => 
+            currentUserRole === 'OWNER' || (currentUserRole === 'ADMIN' && s.creatorId === currentUserId)
+        );
+
+        if (selectedIds.size === selectableStudents.length && selectableStudents.length > 0) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(selectableStudents.map(s => s.id)));
+        }
+    };
+
+    const toggleSelectOne = (id: string) => {
+        const newSet = new Set(selectedIds);
+        if (newSet.has(id)) {
+            newSet.delete(id);
+        } else {
+            newSet.add(id);
+        }
+        setSelectedIds(newSet);
+    };
+
     const handleDownloadTemplate = () => {
         // Now handled by ExcelStudentUploader
     };
@@ -105,6 +161,18 @@ export default function StudentTable({ initialStudents, instructors, currentUser
                 
                 {(currentUserRole === 'ADMIN' || currentUserRole === 'OWNER') && (
                     <div className="flex items-center gap-2">
+                        {selectedIds.size > 0 && (
+                            <button
+                                onClick={handleBulkDelete}
+                                disabled={isBulkDeleting}
+                                className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 gap-1.5 transition-colors"
+                                title="선택한 학생 기록 영구 삭제"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                <span className="hidden sm:inline">{selectedIds.size}건 삭제</span>
+                                <span className="sm:hidden">{selectedIds.size}건</span>
+                            </button>
+                        )}
                         <ExcelStudentUploader />
                     </div>
                 )}
@@ -115,6 +183,17 @@ export default function StudentTable({ initialStudents, instructors, currentUser
                 <table className="min-w-full divide-y divide-slate-200">
                     <thead className="bg-slate-50">
                         <tr>
+                            {(currentUserRole === 'OWNER' || currentUserRole === 'ADMIN') && (
+                                <th className="px-4 py-3 text-left w-10">
+                                    <input
+                                        type="checkbox"
+                                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                        checked={filteredStudents.length > 0 && selectedIds.size === filteredStudents.filter(s => currentUserRole === 'OWNER' || (currentUserRole === 'ADMIN' && s.creatorId === currentUserId)).length && selectedIds.size > 0}
+                                        onChange={toggleSelectAll}
+                                        title="현재 검색된 목록 전체 선택"
+                                    />
+                                </th>
+                            )}
                             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">이름</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">학교 / 학년</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">성별</th>
@@ -126,13 +205,25 @@ export default function StudentTable({ initialStudents, instructors, currentUser
                     <tbody className="bg-white divide-y divide-slate-200">
                         {filteredStudents.length === 0 ? (
                             <tr>
-                                <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                                <td colSpan={currentUserRole === 'OWNER' || currentUserRole === 'ADMIN' ? 7 : 6} className="px-6 py-12 text-center text-slate-500">
                                     {searchTerm ? '검색 결과가 없습니다.' : '등록된 학생이 없습니다.'}
                                 </td>
                             </tr>
                         ) : (
                             filteredStudents.map((student) => (
-                                <tr key={student.id} className="hover:bg-slate-50 transition-colors">
+                                <tr key={student.id} className={`hover:bg-slate-50 transition-colors ${selectedIds.has(student.id) ? 'bg-blue-50/50' : ''}`}>
+                                    {(currentUserRole === 'OWNER' || currentUserRole === 'ADMIN') && (
+                                        <td className="px-4 py-4 whitespace-nowrap">
+                                            <input
+                                                type="checkbox"
+                                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer disabled:opacity-50"
+                                                checked={selectedIds.has(student.id)}
+                                                onChange={() => toggleSelectOne(student.id)}
+                                                disabled={currentUserRole === 'ADMIN' && student.creatorId !== currentUserId}
+                                                title={currentUserRole === 'ADMIN' && student.creatorId !== currentUserId ? "본인이 등록한 학생만 삭제할 수 있습니다." : undefined}
+                                            />
+                                        </td>
+                                    )}
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <Link href={`/admin/students/${student.id}`} className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors block">
                                             {student.name}
@@ -222,14 +313,27 @@ export default function StudentTable({ initialStudents, instructors, currentUser
                 ) : (
                     <div className="flex flex-col divide-y divide-slate-100">
                         {filteredStudents.map((student) => (
-                            <div key={student.id} className="p-4 bg-white hover:bg-slate-50 transition-colors flex flex-col gap-3">
+                            <div key={student.id} className={`p-4 bg-white hover:bg-slate-50 transition-colors flex flex-col gap-3 ${selectedIds.has(student.id) ? 'ring-1 ring-blue-500 bg-blue-50/20' : ''}`}>
                                 <div className="flex justify-between items-start">
-                                    <div className="flex-1 pr-2">
-                                        <Link href={`/admin/students/${student.id}`} className="text-base font-bold text-blue-600 hover:text-blue-800 hover:underline">
-                                            {student.name}
-                                        </Link>
-                                        <div className="text-[11px] text-slate-400 mt-0.5 font-mono" title="QR Token Prefix">
-                                            {student.qrToken.split('-')[0]}***
+                                    <div className="flex-1 pr-2 flex items-start gap-2">
+                                        {(currentUserRole === 'OWNER' || currentUserRole === 'ADMIN') && (
+                                            <div className="pt-1 select-none">
+                                                <input
+                                                    type="checkbox"
+                                                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer disabled:opacity-50"
+                                                    checked={selectedIds.has(student.id)}
+                                                    onChange={() => toggleSelectOne(student.id)}
+                                                    disabled={currentUserRole === 'ADMIN' && student.creatorId !== currentUserId}
+                                                />
+                                            </div>
+                                        )}
+                                        <div>
+                                            <Link href={`/admin/students/${student.id}`} className="text-base font-bold text-blue-600 hover:text-blue-800 hover:underline">
+                                                {student.name}
+                                            </Link>
+                                            <div className="text-[11px] text-slate-400 mt-0.5 font-mono" title="QR Token Prefix">
+                                                {student.qrToken.split('-')[0]}***
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1 shrink-0 bg-slate-50 border border-slate-100 rounded-lg p-1 shadow-sm">

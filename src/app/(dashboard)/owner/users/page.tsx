@@ -17,6 +17,7 @@ export default function UsersManagementPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -66,11 +67,60 @@ export default function UsersManagementPage() {
             }
 
             alert("사용자가 삭제되었습니다.");
+            const newSet = new Set(selectedIds);
+            newSet.delete(userId);
+            setSelectedIds(newSet);
             fetchUsers(); // Refresh list
         } catch (err: any) {
             alert(err.message);
         }
     };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.size === 0) return;
+        if (!confirm(`선택한 ${selectedIds.size}명의 계정을 정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) {
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/users/bulk-delete', {
+                method: "POST",
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: Array.from(selectedIds) })
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "일괄 삭제 실패");
+            }
+
+            const data = await res.json();
+            alert(data.message || "선택한 사용자가 삭제되었습니다.");
+            setSelectedIds(new Set());
+            fetchUsers();
+        } catch (err: any) {
+            alert(err.message);
+        }
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === users.length && users.length > 0) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(users.map(u => u.id)));
+        }
+    };
+
+    const toggleSelectOne = (id: string) => {
+        const newSet = new Set(selectedIds);
+        if (newSet.has(id)) {
+            newSet.delete(id);
+        } else {
+            newSet.add(id);
+        }
+        setSelectedIds(newSet);
+    };
+
 
     const handleModalSuccess = () => {
         fetchUsers(); // Refresh after create/update
@@ -110,12 +160,23 @@ export default function UsersManagementPage() {
                         학원 시스템에 접근할 수 있는 원장, 관리자, 강사 계정을 관리합니다.
                     </p>
                 </div>
-                <button
-                    onClick={handleCreateClick}
-                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                    <Plus className="w-4 h-4 mr-2" />새 사용자 추가
-                </button>
+                <div className="flex items-center gap-3">
+                    {selectedIds.size > 0 && (
+                        <button
+                            onClick={handleBulkDelete}
+                            className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                        >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            {selectedIds.size}건 선택 삭제
+                        </button>
+                    )}
+                    <button
+                        onClick={handleCreateClick}
+                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                        <Plus className="w-4 h-4 mr-2" />새 사용자 추가
+                    </button>
+                </div>
             </div>
 
             {error && (
@@ -129,6 +190,14 @@ export default function UsersManagementPage() {
                     <table className="min-w-full divide-y divide-slate-200">
                         <thead className="bg-slate-50">
                             <tr>
+                                <th scope="col" className="px-6 py-3 text-left w-12">
+                                    <input
+                                        type="checkbox"
+                                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                        checked={users.length > 0 && selectedIds.size === users.length}
+                                        onChange={toggleSelectAll}
+                                    />
+                                </th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">이름</th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">이메일 (아이디)</th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">역할</th>
@@ -138,7 +207,17 @@ export default function UsersManagementPage() {
                         </thead>
                         <tbody className="bg-white divide-y divide-slate-200">
                             {users.map((user) => (
-                                <tr key={user.id} className="hover:bg-slate-50 transition-colors">
+                                <tr key={user.id} className={`hover:bg-slate-50 transition-colors ${selectedIds.has(user.id) ? 'bg-blue-50/50' : ''}`}>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        {user.role !== "OWNER" && (
+                                            <input
+                                                type="checkbox"
+                                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                checked={selectedIds.has(user.id)}
+                                                onChange={() => toggleSelectOne(user.id)}
+                                            />
+                                        )}
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="font-medium text-slate-900">{user.name}</div>
                                         <div className="text-xs text-slate-500">가입: {new Date(user.createdAt).toLocaleDateString()}</div>

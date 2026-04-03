@@ -29,6 +29,10 @@ export default function InstructorTable({ initialInstructors, currentUserId, cur
     const [instructorToDelete, setInstructorToDelete] = useState<InstructorData | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
+    // Bulk Delete state
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
     const filteredInstructors = initialInstructors.filter(instructor =>
         instructor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         instructor.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -58,6 +62,57 @@ export default function InstructorTable({ initialInstructors, currentUserId, cur
         }
     };
 
+    const handleBulkDelete = async () => {
+        if (selectedIds.size === 0) return;
+        if (!confirm(`선택한 ${selectedIds.size}명의 강사를 삭제하시겠습니까?\n주의: 수강생이 등록된 강사는 삭제할 수 없습니다.`)) return;
+
+        setIsBulkDeleting(true);
+        try {
+            const res = await fetch(`/api/admin/instructors/bulk-delete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: Array.from(selectedIds) })
+            });
+
+            const data = await res.json();
+            
+            if (!res.ok) {
+                throw new Error(data.error || "일괄 삭제에 실패했습니다.");
+            }
+
+            alert(data.message || `${selectedIds.size}명의 강사가 삭제되었습니다.`);
+            setSelectedIds(new Set());
+            router.refresh();
+        } catch (error: any) {
+            console.error(error);
+            alert(error.message || "삭제 중 오류가 발생했습니다.");
+        } finally {
+            setIsBulkDeleting(false);
+        }
+    };
+
+    const toggleSelectAll = () => {
+        const selectableInstructors = filteredInstructors.filter(i => 
+            currentUserRole === 'OWNER' || i.creatorId === currentUserId
+        );
+
+        if (selectedIds.size === selectableInstructors.length && selectableInstructors.length > 0) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(selectableInstructors.map(i => i.id)));
+        }
+    };
+
+    const toggleSelectOne = (id: string) => {
+        const newSet = new Set(selectedIds);
+        if (newSet.has(id)) {
+            newSet.delete(id);
+        } else {
+            newSet.add(id);
+        }
+        setSelectedIds(newSet);
+    };
+
     return (
         <div className="flex flex-col w-full">
             <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row gap-4 justify-between">
@@ -73,12 +128,32 @@ export default function InstructorTable({ initialInstructors, currentUserId, cur
                         className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md leading-5 bg-white placeholder-slate-500 focus:outline-none focus:placeholder-slate-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
                     />
                 </div>
+                <div className="flex items-center gap-2">
+                    {selectedIds.size > 0 && (
+                        <button
+                            onClick={handleBulkDelete}
+                            disabled={isBulkDeleting}
+                            className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 transition-colors"
+                        >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            {selectedIds.size}건 삭제
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-slate-200">
                     <thead className="bg-slate-50">
                         <tr>
+                            <th className="px-4 py-3 text-left w-10">
+                                <input
+                                    type="checkbox"
+                                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                    checked={filteredInstructors.length > 0 && selectedIds.size === filteredInstructors.filter(i => currentUserRole === 'OWNER' || i.creatorId === currentUserId).length && selectedIds.size > 0}
+                                    onChange={toggleSelectAll}
+                                />
+                            </th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">이름 / 이메일</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">수익 비율</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">보험료 공제액</th>
@@ -90,13 +165,23 @@ export default function InstructorTable({ initialInstructors, currentUserId, cur
                     <tbody className="bg-white divide-y divide-slate-200">
                         {filteredInstructors.length === 0 ? (
                             <tr>
-                                <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                                <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                                     {searchTerm ? '검색 결과가 없습니다.' : '등록된 강사가 없습니다.'}
                                 </td>
                             </tr>
                         ) : (
                             filteredInstructors.map((instructor) => (
-                                <tr key={instructor.id} className="hover:bg-slate-50 transition-colors">
+                                <tr key={instructor.id} className={`hover:bg-slate-50 transition-colors ${selectedIds.has(instructor.id) ? 'bg-blue-50/50' : ''}`}>
+                                    <td className="px-4 py-4 whitespace-nowrap">
+                                        <input
+                                            type="checkbox"
+                                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50 cursor-pointer"
+                                            checked={selectedIds.has(instructor.id)}
+                                            onChange={() => toggleSelectOne(instructor.id)}
+                                            disabled={currentUserRole !== 'OWNER' && instructor.creatorId !== currentUserId}
+                                            title={currentUserRole !== 'OWNER' && instructor.creatorId !== currentUserId ? "본인이 등록한 강사만 삭제할 수 있습니다." : undefined}
+                                        />
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm font-medium text-slate-900">{instructor.name}</div>
                                         <div className="text-xs text-slate-500 mt-0.5">{instructor.email}</div>
