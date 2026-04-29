@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Save, Image as ImageIcon, Building2, Link as LinkIcon, Phone } from "lucide-react";
 import { useRouter } from "next/navigation";
+import BackupRestoreSection from "./BackupRestoreSection";
 
 export default function OwnerSettingsPage() {
     const router = useRouter();
@@ -284,6 +285,9 @@ export default function OwnerSettingsPage() {
                 </div>
 
             </form>
+
+            {/* Backup & Restore Section */}
+            <BackupRestoreSection />
         </div>
     );
 }
