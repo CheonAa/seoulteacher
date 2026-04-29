@@ -96,10 +96,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
             });
         }
 
-        // 트랜잭션으로 학생, 부모, 그리고 수강 이력 및 차량 시간표 전체 수정
-        await prisma.$transaction(async (tx) => {
-            // 1. 학생 기본 정보 업데이트
-            const updatedStudent = await tx.student.update({
+        // 트랜잭션 제거 후 순차 실행 (서버리스 환경 PgBouncer 오류 방지)
+        // 1. 학생 기본 정보 업데이트
+        const updatedStudent = await prisma.student.update({
                 where: { id },
                 data: {
                     name,
@@ -113,13 +112,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 } as any // Bypass strict TS check for new schema fields not yet generated
             });
 
-            // 2. 학부모 정보 업데이트 (기존 삭제 후 재생성 방식 사용 - 가장 깔끔함)
-            await tx.parent.deleteMany({
+        // 2. 학부모 정보 업데이트 (기존 삭제 후 재생성 방식 사용 - 가장 깔끔함)
+        await prisma.parent.deleteMany({
                 where: { studentId: id }
             });
 
-            if (parents && Array.isArray(parents) && parents.length > 0) {
-                await tx.parent.createMany({
+        if (parents && Array.isArray(parents) && parents.length > 0) {
+            await prisma.parent.createMany({
                     data: parents.map((p: any) => ({
                         studentId: id,
                         name: p.name,
@@ -135,8 +134,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 .map((enr: any) => enr.id)
                 .filter((enrId: any) => enrId && enrId.trim() !== "");
 
-            // Payload에 없는 기존 수강 정보는 삭제 (단, Attendance/MonthlyBilling 도 캐스케이드 삭제되므로 주의)
-            await tx.enrollment.deleteMany({
+        // Payload에 없는 기존 수강 정보는 삭제 (단, Attendance/MonthlyBilling 도 캐스케이드 삭제되므로 주의)
+        await prisma.enrollment.deleteMany({
                 where: { 
                     studentId: id,
                     id: { notIn: payloadEnrollmentIds }
@@ -162,13 +161,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
                     if (enr.id && enr.id.trim() !== "") {
                         // 기존 수강 정보 업데이트
-                        await tx.enrollment.update({
+                        await prisma.enrollment.update({
                             where: { id: enr.id },
                             data: enrData as any
                         });
                     } else {
                         // 새로운 수강 정보 추가
-                        await tx.enrollment.create({
+                        await prisma.enrollment.create({
                             data: {
                                 ...enrData,
                                 studentId: id
@@ -188,15 +187,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                     const updatedArray = studentArray.map((s: string) => s === oldName ? name.trim() : s);
                     const newStudentsString = updatedArray.filter(Boolean).join(', ');
 
-                    await tx.shuttleSchedule.update({
+                    await prisma.shuttleSchedule.update({
                         where: { id: schedule.id },
                         data: { students: newStudentsString }
                     });
                 }
             }
-
-            return updatedStudent;
-        });
 
         return NextResponse.json({ message: '학생 수정 완료' });
     } catch (error) {
@@ -247,27 +243,24 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
             }
         });
 
-        // 트랜잭션으로 차량 시간표 이름에서 학생 제외 처리 및 학생 레코드 삭제
-        await prisma.$transaction(async (tx) => {
-            if (affectedSchedules.length > 0) {
-                for (const schedule of affectedSchedules) {
-                    if (!schedule.students) continue;
+        if (affectedSchedules.length > 0) {
+            for (const schedule of affectedSchedules) {
+                if (!schedule.students) continue;
 
-                    const studentArray = schedule.students.split(',').map((s: string) => s.trim());
-                    // 기존 이름 제거
-                    const updatedArray = studentArray.filter((s: string) => s !== student.name);
-                    const newStudentsString = updatedArray.filter(Boolean).join(', ') || null;
+                const studentArray = schedule.students.split(',').map((s: string) => s.trim());
+                // 기존 이름 제거
+                const updatedArray = studentArray.filter((s: string) => s !== student.name);
+                const newStudentsString = updatedArray.filter(Boolean).join(', ') || null;
 
-                    await tx.shuttleSchedule.update({
-                        where: { id: schedule.id },
-                        data: { students: newStudentsString }
-                    });
-                }
+                await prisma.shuttleSchedule.update({
+                    where: { id: schedule.id },
+                    data: { students: newStudentsString }
+                });
             }
+        }
 
-            await tx.student.delete({
-                where: { id }
-            });
+        await prisma.student.delete({
+            where: { id }
         });
 
         return NextResponse.json({ message: '학생이 삭제되었습니다.' });

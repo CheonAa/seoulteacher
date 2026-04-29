@@ -60,29 +60,26 @@ export async function POST(req: Request) {
             }
         });
 
-        // 트랜잭션으로 차량 시간표 이름에서 학생 제외 처리 및 학생 레코드 일괄 삭제
-        await prisma.$transaction(async (tx) => {
-            if (affectedSchedules.length > 0) {
-                for (const schedule of affectedSchedules) {
-                    if (!schedule.students) continue;
+        if (affectedSchedules.length > 0) {
+            for (const schedule of affectedSchedules) {
+                if (!schedule.students) continue;
 
-                    let studentArray = schedule.students.split(',').map((s: string) => s.trim());
-                    // 기존 이름 제거
-                    const updatedArray = studentArray.filter((s: string) => !namesToDelete.includes(s));
-                    const newStudentsString = updatedArray.filter(Boolean).join(', ') || null;
+                let studentArray = schedule.students.split(',').map((s: string) => s.trim());
+                // 기존 이름 제거
+                const updatedArray = studentArray.filter((s: string) => !namesToDelete.includes(s));
+                const newStudentsString = updatedArray.filter(Boolean).join(', ') || null;
 
-                    await tx.shuttleSchedule.update({
-                        where: { id: schedule.id },
-                        data: { students: newStudentsString }
-                    });
-                }
+                await prisma.shuttleSchedule.update({
+                    where: { id: schedule.id },
+                    data: { students: newStudentsString }
+                });
             }
+        }
 
-            // Enrollment 같은 연관 관계는 Cascade 로 자동 삭제되거나 schema 에 정의된 동작 사용. 
-            // 단일 삭제와 동일하게 student.delete() 와 같이 동작함.
-            await tx.student.deleteMany({
-                where: { id: { in: idsToDelete } }
-            });
+        // Enrollment 같은 연관 관계는 Cascade 로 자동 삭제되거나 schema 에 정의된 동작 사용. 
+        // 단일 삭제와 동일하게 student.delete() 와 같이 동작함.
+        await prisma.student.deleteMany({
+            where: { id: { in: idsToDelete } }
         });
 
         return NextResponse.json({ 

@@ -27,43 +27,41 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "유효한 삭제 대상이 없습니다 (자신의 계정은 삭제할 수 없습니다)." }, { status: 400 });
         }
 
-        await prisma.$transaction(async (tx) => {
-            // 1. Reassign Enrollments
-            await tx.enrollment.updateMany({
-                where: { instructorId: { in: idsToDelete } },
-                data: { instructorId: ownerId }
-            });
+        // 1. Reassign Enrollments
+        await prisma.enrollment.updateMany({
+            where: { instructorId: { in: idsToDelete } },
+            data: { instructorId: ownerId }
+        });
 
-            // 2. Reassign ShuttleSchedules
-            await tx.shuttleSchedule.updateMany({
-                where: { instructorId: { in: idsToDelete } },
-                data: { instructorId: ownerId }
-            });
+        // 2. Reassign ShuttleSchedules
+        await prisma.shuttleSchedule.updateMany({
+            where: { instructorId: { in: idsToDelete } },
+            data: { instructorId: ownerId }
+        });
 
-            // 3. Reassign Notices
-            await tx.notice.updateMany({
-                where: { authorId: { in: idsToDelete } },
-                data: { authorId: ownerId }
-            });
+        // 3. Reassign Notices
+        await prisma.notice.updateMany({
+            where: { authorId: { in: idsToDelete } },
+            data: { authorId: ownerId }
+        });
 
-            // 4. Reassign creatorId for Students, Attendances, Users
-            await tx.student.updateMany({
-                where: { creatorId: { in: idsToDelete } },
-                data: { creatorId: ownerId }
-            });
-            await tx.attendance.updateMany({
-                where: { creatorId: { in: idsToDelete } },
-                data: { creatorId: ownerId }
-            });
-            await tx.user.updateMany({
-                where: { creatorId: { in: idsToDelete } },
-                data: { creatorId: ownerId }
-            });
+        // 4. Reassign creatorId for Students, Attendances, Users
+        await prisma.student.updateMany({
+            where: { creatorId: { in: idsToDelete } },
+            data: { creatorId: ownerId }
+        });
+        await prisma.attendance.updateMany({
+            where: { creatorId: { in: idsToDelete } },
+            data: { creatorId: ownerId }
+        });
+        await prisma.user.updateMany({
+            where: { creatorId: { in: idsToDelete } },
+            data: { creatorId: ownerId }
+        });
 
-            // Now safe to delete
-            await tx.user.deleteMany({
-                where: { id: { in: idsToDelete } },
-            });
+        // Now safe to delete
+        await prisma.user.deleteMany({
+            where: { id: { in: idsToDelete } },
         });
 
         return NextResponse.json({ 
