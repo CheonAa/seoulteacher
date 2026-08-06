@@ -41,7 +41,7 @@ export default async function NoticeBar() {
                         {notices.map((notice: any) => (
                             <Link
                                 key={notice.id}
-                                href={`/login?callbackUrl=/admin/notices/${notice.id}`}
+                                href={`/admin/notices/${notice.id}`}
                                 className="group flex items-center justify-between"
                             >
                                 <p className="text-sm font-medium text-slate-700 truncate group-hover:text-[#0055AB] cursor-pointer transition-colors max-w-[85%]">
@@ -57,7 +57,7 @@ export default async function NoticeBar() {
 
                     {/* View All Button */}
                     <Link
-                        href="/login?callbackUrl=/admin/notices"
+                        href="/admin/notices"
                         className="flex-shrink-0 flex items-center text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors self-start sm:self-center bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-md border border-slate-200"
                     >
                         전체보기 <ChevronRight className="w-4 h-4 ml-0.5" />

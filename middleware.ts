@@ -6,6 +6,10 @@ export default withAuth(
         const role = req.nextauth.token?.role;
         const path = req.nextUrl.pathname;
 
+        // 공지사항 조회 및 상세조회 페이지는 로그인하지 않은 일반 사용자(GUEST)도 접근 가능하게 우회
+        const isPublicNotice = path === "/admin/notices" || 
+            (/^\/admin\/notices\/[^\/]+$/.test(path) && path !== "/admin/notices/new");
+
         // Owner 영역
         if (path.startsWith("/owner") && role !== "OWNER") {
             return NextResponse.redirect(new URL("/unauthorized", req.url));
@@ -16,8 +20,8 @@ export default withAuth(
             return NextResponse.redirect(new URL("/unauthorized", req.url));
         }
 
-        // Admin 공통 영역 (Owner, Admin, Instructor 접근 가능 - 데이터 필터링은 서버 컴포넌트 내부에서 처리)
-        if (path.startsWith("/admin") && role !== "ADMIN" && role !== "OWNER" && role !== "INSTRUCTOR") {
+        // Admin 공통 영역 (Owner, Admin, Instructor 접근 가능 - 단, 공지사항 조회 페이지는 제외)
+        if (!isPublicNotice && path.startsWith("/admin") && role !== "ADMIN" && role !== "OWNER" && role !== "INSTRUCTOR") {
             return NextResponse.redirect(new URL("/unauthorized", req.url));
         }
 
@@ -30,7 +34,17 @@ export default withAuth(
     },
     {
         callbacks: {
-            authorized: ({ token }) => !!token,
+            authorized: ({ token, req }) => {
+                const path = req.nextUrl.pathname;
+                // 공지사항 목록 및 상세 조회(/admin/notices/new 제외)는 토큰(로그인) 없이도 허용
+                const isPublicNotice = path === "/admin/notices" || 
+                    (/^\/admin\/notices\/[^\/]+$/.test(path) && path !== "/admin/notices/new");
+                
+                if (isPublicNotice) {
+                    return true;
+                }
+                return !!token;
+            },
         },
         pages: {
             signIn: "/login",
