@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import LandingHeader from "@/components/landing/LandingHeader";
 import HeroSection from "@/components/landing/HeroSection";
 import NoticeBar from "@/components/landing/NoticeBar";
+import FeaturedNotice from "@/components/landing/FeaturedNotice";
 import FeatureCards from "@/components/landing/FeatureCards";
 import EducationalFocus from "@/components/landing/EducationalFocus";
 import CurriculumSection from "@/components/landing/CurriculumSection";
@@ -52,6 +53,7 @@ export default async function HomePage() {
       <main>
         <HeroSection />
         <NoticeBar />
+        <FeaturedNotice />
         <FeatureCards />
         <EducationalFocus />
         <CurriculumSection />
