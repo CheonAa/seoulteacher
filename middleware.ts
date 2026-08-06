@@ -30,6 +30,11 @@ export default withAuth(
             return NextResponse.redirect(new URL("/unauthorized", req.url));
         }
 
+        // Student 영역 (Owner, Admin도 관리용으로 접근 가능)
+        if (path.startsWith("/student") && role !== "STUDENT" && role !== "OWNER" && role !== "ADMIN") {
+            return NextResponse.redirect(new URL("/unauthorized", req.url));
+        }
+
         return NextResponse.next();
     },
     {
@@ -53,5 +58,5 @@ export default withAuth(
 );
 
 export const config = {
-    matcher: ["/admin/:path*", "/owner/:path*", "/instructor/:path*", "/dashboard/:path*"],
+    matcher: ["/admin/:path*", "/owner/:path*", "/instructor/:path*", "/dashboard/:path*", "/student/:path*"],
 };

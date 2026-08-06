@@ -14,7 +14,8 @@ import {
     Settings,
     Bus,
     Megaphone,
-    ScanLine
+    ScanLine,
+    BookOpen
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import clsx from "clsx";
@@ -51,7 +52,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const role = session?.user?.role || "GUEST";
 
     const navigation = [
-        { name: "대시보드", href: `/${role.toLowerCase()}`, icon: LayoutDashboard, roles: ["OWNER", "ADMIN", "INSTRUCTOR"] },
+        { name: "대시보드", href: role === "STUDENT" ? "/student/courses" : `/${role.toLowerCase()}`, icon: LayoutDashboard, roles: ["OWNER", "ADMIN", "INSTRUCTOR", "STUDENT"] },
+        { name: "나의 강의실", href: "/student/courses", icon: BookOpen, roles: ["STUDENT"] },
+        { name: "온라인 과정 관리", href: "/admin/courses", icon: BookOpen, roles: ["OWNER", "ADMIN", "INSTRUCTOR"] },
         { name: "사용자 관리", href: "/owner/users", icon: Users, roles: ["OWNER"] },
         { name: "공지사항", href: "/admin/notices", icon: Megaphone, roles: ["OWNER", "ADMIN", "INSTRUCTOR"] },
         { name: "학생 관리", href: "/admin/students", icon: Users, roles: ["OWNER", "ADMIN", "INSTRUCTOR"] },

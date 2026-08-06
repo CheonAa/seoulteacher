@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     try {
         const session = await getServerSession(authOptions);
 
-        if (!session || (session.user.role !== "OWNER" && session.user.role !== "ADMIN")) {
+        if (!session || (session.user.role !== "OWNER" && session.user.role !== "ADMIN" && session.user.role !== "INSTRUCTOR")) {
             return NextResponse.json({ error: "업로드 권한이 없습니다." }, { status: 403 });
         }
 
