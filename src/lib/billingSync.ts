@@ -39,7 +39,40 @@ export async function syncBillings(
 
     let runningLeftover = prevBilling ? prevBilling.carryOverSessions : 0;
 
+    let startYearLimit = 0;
+    let startMonthLimit = 0;
+    if (enrollment.startDate) {
+        const startDateTime = new Date(enrollment.startDate);
+        if (!isNaN(startDateTime.getTime())) {
+            startYearLimit = startDateTime.getFullYear();
+            startMonthLimit = startDateTime.getMonth() + 1;
+        }
+    }
+
     for (const billing of forwardBillings) {
+        // 강의 시작일 이전 달인지 체크
+        const isBeforeStart = startYearLimit > 0 && (
+            billing.year < startYearLimit || 
+            (billing.year === startYearLimit && billing.month < startMonthLimit)
+        );
+
+        if (isBeforeStart) {
+            let newCarryOver = runningLeftover - billing.attendedSessions;
+            if (newCarryOver < 0) newCarryOver = 0;
+
+            if (billing.targetSessions !== 0 || billing.carryOverSessions !== newCarryOver) {
+                await tx.monthlyBilling.update({
+                    where: { id: billing.id },
+                    data: {
+                        targetSessions: 0,
+                        carryOverSessions: newCarryOver
+                    }
+                });
+            }
+            runningLeftover = newCarryOver;
+            continue;
+        }
+
         let currentTarget = billing.targetSessions;
         
         // Optimize target: reduce unpaid target sessions if we have enough leftover

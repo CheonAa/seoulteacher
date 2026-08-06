@@ -173,6 +173,12 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
                                                     <span className="font-medium flex items-center gap-1.5"><CreditCard className="w-3 h-3 text-slate-400" /> 수강료/기본횟수</span>
                                                     <span>{env.feePerSession.toLocaleString()} ₫ <span className="text-slate-400">×</span> {env.targetSessionsMonth}회</span>
                                                 </div>
+                                                <div className="flex justify-between items-center text-slate-600 px-2 py-1">
+                                                    <span className="font-medium flex items-center gap-1.5"><Calendar className="w-3 h-3 text-slate-400" /> 수강 시작일</span>
+                                                    <span className="font-semibold text-slate-800">
+                                                        {env.startDate ? format(new Date(env.startDate), 'yyyy-MM-dd') : '-'}
+                                                    </span>
+                                                </div>
                                                 <div className="flex justify-between items-center text-slate-600 px-2 py-1 border-b border-slate-100/50 pb-2 mb-2">
                                                     <span className="font-medium flex items-center gap-1.5"><CreditCard className="w-3 h-3 text-slate-400" /> 이번 달 납부 현황</span>
                                                     {billing ? (

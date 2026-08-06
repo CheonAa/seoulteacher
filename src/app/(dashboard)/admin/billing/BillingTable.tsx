@@ -50,6 +50,11 @@ export default function BillingTable({ billings, role }: { billings: any[], role
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                 {billing.enrollment.subjectName}
                                 <div className="text-xs text-slate-400">{billing.enrollment.instructor.name} 강사</div>
+                                {billing.enrollment.startDate && (
+                                    <div className="text-[10px] text-slate-400 mt-0.5">
+                                        시작일: {format(new Date(billing.enrollment.startDate), 'yyyy-MM-dd')}
+                                    </div>
+                                )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                 {(billing.enrollment.feePerSession * billing.targetSessions).toLocaleString()} VND

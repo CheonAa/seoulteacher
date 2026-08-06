@@ -349,6 +349,11 @@ export default function StudentTable({ initialStudents, instructors, currentUser
                                                     <span key={env.id} className="inline-flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-md border border-slate-100 w-fit">
                                                         <span className="font-medium text-slate-700">{env.subjectName}</span>
                                                         <span className="text-xs text-slate-500 border-l border-slate-300 pl-1 ml-1">{env.instructor.name}</span>
+                                                         {env.startDate && (
+                                                             <span className="text-[10px] text-slate-400 border-l border-slate-300 pl-1 ml-1" title="수강 시작일">
+                                                                 시작: {env.startDate.split('T')[0]}
+                                                             </span>
+                                                         )}
                                                     </span>
                                                 ))}
                                             </div>
@@ -499,6 +504,11 @@ export default function StudentTable({ initialStudents, instructors, currentUser
                                                 <span key={env.id} className="inline-flex items-center gap-1.5 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
                                                     <span className="font-semibold text-slate-800 text-sm">{env.subjectName}</span>
                                                     <span className="text-[11px] text-slate-500 border-l border-slate-300 pl-1.5">{env.instructor.name} 강사</span>
+                                                     {env.startDate && (
+                                                         <span className="text-[10px] text-slate-400 border-l border-slate-300 pl-1.5" title="수강 시작일">
+                                                             시작: {env.startDate.split('T')[0]}
+                                                         </span>
+                                                     )}
                                                 </span>
                                             ))}
                                         </div>
