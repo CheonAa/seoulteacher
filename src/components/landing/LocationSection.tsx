@@ -61,7 +61,7 @@ export default function LocationSection() {
                                     <p className="text-sm font-bold text-blue-200 mb-1">주소</p>
                                     <p className="text-lg font-medium">
                                         A14 Fivestar Mỹ Đình, Ngõ 154 Đình Thôn, <br />
-                                        Phường Cầu Giấy, TP. Hà Nội, Việt Nam
+                                        Phường Từ Liêm, TP. Hà Nội, Việt Nam
                                     </p>
                                 </div>
                             </li>

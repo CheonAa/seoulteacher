@@ -10,7 +10,7 @@ export default function LandingFooter({ settings }: LandingFooterProps) {
     const companyName = settings?.["COMPANY_NAME"] || "HANOI SEOUL ACADEMY";
     const repName = settings?.["REPRESENTATIVE_NAME"] || "김대표";
     const regNo = settings?.["COMPANY_REG_NO"] || "123-45-67890";
-    const address = settings?.["COMPANY_ADDRESS"] || "A14 Fivestar Mỹ Đình, Ngõ 154 Đình Thôn, Phường Cầu 기ấy, TP. Hà Nội, Việt Nam";
+    const address = settings?.["COMPANY_ADDRESS"] || "A14 Fivestar Mỹ Đình, Ngõ 154 Đình Thôn, Phường Từ Liêm, TP. Hà Nội, Việt Nam";
     const phone = settings?.["COMPANY_PHONE"] || "012-345-6789";
     const snsLink = settings?.["SNS_NAME"] || "https://www.instagram.com/edu.seoul";
     const siteName = settings?.["SITE_NAME"] || "HANOI SEOUL ACADEMY";
