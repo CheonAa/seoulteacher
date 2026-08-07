@@ -53,12 +53,12 @@ export default async function FeaturedNotice() {
                     
                     {/* 이미지 영역 */}
                     <div className="lg:col-span-5 mb-8 lg:mb-0">
-                        <Link href={`/admin/notices/${featuredNotice.id}`} className="block overflow-hidden rounded-2xl shadow-lg border border-slate-100 hover:shadow-xl transition-shadow group">
+                        <Link href={`/admin/notices/${featuredNotice.id}`} className="block overflow-hidden rounded-2xl shadow-lg border border-slate-100 hover:shadow-xl transition-shadow group bg-slate-50 flex items-center justify-center h-[320px] md:h-[500px]">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img 
                                 src={featuredImageUrl} 
                                 alt={featuredNotice.title}
-                                className="w-full h-[320px] md:h-[400px] object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                                className="max-w-full max-h-full object-contain group-hover:scale-102 transition-transform duration-500 ease-out"
                             />
                         </Link>
                     </div>
