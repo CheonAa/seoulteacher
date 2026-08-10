@@ -33,19 +33,26 @@ export default function BackupRestoreSection() {
         fetchBackups();
     }, []);
 
-    const handleCreateBackup = async () => {
-        if (!confirm("현재 데이터베이스의 전체 백업을 생성하시겠습니까?")) return;
+    const handleCreateBackup = async (type: 'db' | 'uploads' | 'source' | 'all') => {
+        let typeName = "";
+        if (type === 'db') typeName = "데이터베이스";
+        else if (type === 'uploads') typeName = "앱 자료 (업로드 파일)";
+        else if (type === 'source') typeName = "소스 코드";
+        else if (type === 'all') typeName = "전체 패키지 (DB + 자료 + 소스코드)";
+
+        if (!confirm(`${typeName} 백업을 생성하시겠습니까?`)) return;
         
         setLoading(true);
         setMessage(null);
         try {
-            const res = await fetch('/api/admin/backup', { method: 'POST' });
+            const res = await fetch(`/api/admin/backup?type=${type}`, { method: 'POST' });
             if (!res.ok) throw new Error("백업 생성 실패");
             
-            setMessage({ type: 'success', text: "백업 파일이 생성되었습니다. (Vercel 특성상 생성된 백업은 가급적 PC로 다운로드 바랍니다.)" });
+            const data = await res.json();
+            setMessage({ type: 'success', text: `${typeName} 백업 파일(${data.filename})이 생성되었습니다.` });
             fetchBackups();
         } catch (error) {
-            setMessage({ type: 'error', text: "백업 생성 중 오류가 발생했습니다." });
+            setMessage({ type: 'error', text: `${typeName} 백업 생성 중 오류가 발생했습니다.` });
         } finally {
             setLoading(false);
         }
@@ -71,7 +78,7 @@ export default function BackupRestoreSection() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        if (!confirm(`정말 '${file.name}' 파일로 데이터베이스를 복구하시겠습니까?\n\n⚠️ 경고: 현재 데이터베이스의 모든 데이터가 삭제되고 백업 파일의 데이터로 덮어씌워집니다. 이 작업은 되돌릴 수 없습니다!`)) {
+        if (!confirm(`정말 '${file.name}' 파일로 복구를 진행하시겠습니까?\n\n⚠️ 경고: 현재 데이터베이스가 초기화되고 백업 파일 내의 데이터, 앱 자료(업로드 파일), 소스 코드 등이 덮어씌워집니다. 이 작업은 되돌릴 수 없습니다!`)) {
             e.target.value = '';
             return;
         }
@@ -92,10 +99,11 @@ export default function BackupRestoreSection() {
                 throw new Error(errorData.error || "복구 실패");
             }
 
-            setMessage({ type: 'success', text: "데이터베이스가 성공적으로 복구되었습니다. 변경사항 반영을 위해 잠시 후 새로고침됩니다." });
+            const resData = await res.json();
+            setMessage({ type: 'success', text: resData.message || "복구가 성공적으로 완료되었습니다." });
             setTimeout(() => {
                 window.location.reload();
-            }, 2000);
+            }, 3000);
         } catch (error: any) {
             setMessage({ type: 'error', text: error.message || "복구 중 오류가 발생했습니다." });
         } finally {
@@ -112,36 +120,76 @@ export default function BackupRestoreSection() {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
 
+    const getBackupTypeLabel = (filename: string) => {
+        if (filename.includes('_db_backup_')) return '데이터베이스 (JSON)';
+        if (filename.includes('_uploads_backup_')) return '앱 자료 (ZIP)';
+        if (filename.includes('_source_backup_')) return '소스 코드 (ZIP)';
+        if (filename.includes('_full_backup_')) return '전체 패키지 (ZIP)';
+        return '기본 데이터 백업';
+    };
+
     return (
         <div className="bg-white shadow rounded-lg border border-slate-200 overflow-hidden mt-6">
-            <div className="px-4 py-5 sm:px-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+            <div className="px-4 py-5 sm:px-6 border-b border-slate-200 flex items-center bg-slate-50">
                 <div className="flex items-center gap-2">
                     <Database className="w-5 h-5 text-indigo-600" />
                     <h3 className="text-lg leading-6 font-medium text-slate-900">전체 백업 및 복구 관리</h3>
                 </div>
-                <button
-                    onClick={handleCreateBackup}
-                    disabled={loading || actionLoading}
-                    className="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
-                >
-                    <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                    현재 DB 전체 백업 생성
-                </button>
             </div>
             
-            <div className="px-4 py-5 sm:p-6 space-y-4">
+            <div className="px-4 py-5 sm:p-6 space-y-5">
                 <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
                     <div className="flex">
                         <div className="flex-shrink-0">
                             <AlertTriangle className="h-5 w-5 text-yellow-400" aria-hidden="true" />
                         </div>
-                        <div className="ml-3">
-                            <p className="text-sm text-yellow-700">
-                                <strong>주의사항:</strong> 서버(Vercel) 환경의 특성상 생성된 백업 파일은 서버 재시작 시 삭제될 수 있습니다. 
-                                백업 생성 후 반드시 <strong>[다운로드]</strong> 버튼을 눌러 로컬 PC에 보관해 주세요. 
-                                복구 시에는 보관해둔 백업 파일을 <strong>[백업 파일 업로드로 복구]</strong> 버튼을 통해 복구하시면 됩니다.
+                        <div className="ml-3 text-sm text-yellow-700">
+                            <p className="font-semibold">⚠️ 백업 파일 다운로드 및 유실 방지 안내:</p>
+                            <p className="mt-1">
+                                서버(Vercel) 환경 특성상 생성된 백업은 서버 재기동 시 자동 삭제될 수 있습니다. 
+                                백업 생성 완료 후 반드시 <strong>[다운로드]</strong>를 클릭하여 로컬 PC에 안전하게 보관해 주십시오. 
+                                복구 시에는 보관된 파일(.json 또는 .zip)을 <strong>[백업 파일 업로드로 복구]</strong> 버튼으로 업로드해 복원하면 됩니다.
                             </p>
                         </div>
+                    </div>
+                </div>
+
+                {/* 백업 생성 버튼 그리드 */}
+                <div className="space-y-2">
+                    <h4 className="text-sm font-bold text-slate-700">백업 유형별 생성 실행</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                        <button
+                            onClick={() => handleCreateBackup('db')}
+                            disabled={loading || actionLoading}
+                            className="inline-flex items-center justify-center px-4 py-2.5 border border-transparent shadow-sm text-xs font-bold rounded-lg text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                        >
+                            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
+                            데이터베이스 백업
+                        </button>
+                        <button
+                            onClick={() => handleCreateBackup('uploads')}
+                            disabled={loading || actionLoading}
+                            className="inline-flex items-center justify-center px-4 py-2.5 border border-transparent shadow-sm text-xs font-bold rounded-lg text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors"
+                        >
+                            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
+                            앱 자료(업로드 파일) 백업
+                        </button>
+                        <button
+                            onClick={() => handleCreateBackup('source')}
+                            disabled={loading || actionLoading}
+                            className="inline-flex items-center justify-center px-4 py-2.5 border border-transparent shadow-sm text-xs font-bold rounded-lg text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                        >
+                            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
+                            소스 코드 백업
+                        </button>
+                        <button
+                            onClick={() => handleCreateBackup('all')}
+                            disabled={loading || actionLoading}
+                            className="inline-flex items-center justify-center px-4 py-2.5 border border-transparent shadow-sm text-xs font-bold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                        >
+                            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
+                            전체 패키지 통합 백업
+                        </button>
                     </div>
                 </div>
 
@@ -151,50 +199,54 @@ export default function BackupRestoreSection() {
                     </div>
                 )}
 
-                <div className="flex items-center justify-between mt-4">
-                    <h4 className="text-sm font-medium text-slate-900">서버 임시 보관 백업 목록 ({backups.length}건)</h4>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-100">
+                    <h4 className="text-sm font-bold text-slate-800">서버 임시 보관 백업 목록 ({backups.length}건)</h4>
                     
-                    <label className="cursor-pointer inline-flex items-center px-3 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 transition-colors">
-                        <UploadCloud className="w-4 h-4 mr-2 text-indigo-500" />
+                    <label className="cursor-pointer inline-flex items-center justify-center px-4 py-2 border border-slate-350 shadow-sm text-xs font-bold rounded-lg text-slate-700 bg-white hover:bg-slate-50 transition-colors">
+                        <UploadCloud className="w-4 h-4 mr-2 text-indigo-600" />
                         {actionLoading ? '복구 진행 중...' : '백업 파일 업로드로 복구 (PC에서 선택)'}
-                        <input type="file" className="hidden" accept=".json" onChange={handleRestoreUpload} disabled={actionLoading} />
+                        <input type="file" className="hidden" accept=".json,.zip" onChange={handleRestoreUpload} disabled={actionLoading} />
                     </label>
                 </div>
 
-                <div className="mt-2 border border-slate-200 rounded-md overflow-hidden">
-                    <table className="min-w-full divide-y divide-slate-200">
+                <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                    <table className="min-w-full divide-y divide-slate-200 text-sm">
                         <thead className="bg-slate-50">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">파일명</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">생성 일시</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">용량</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">관리</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">파일명</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">유형</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">생성 일시</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">용량</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">관리</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-slate-200">
                             {backups.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="px-4 py-6 text-center text-sm text-slate-500">
-                                        생성된 백업 파일이 없습니다.
+                                    <td colSpan={5} className="px-4 py-12 text-center text-slate-400 text-xs">
+                                        생성 또는 임시 보관된 백업 파일이 없습니다.
                                     </td>
                                 </tr>
                             ) : (
                                 backups.map((backup) => (
                                     <tr key={backup.filename} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">
+                                        <td className="px-4 py-3 font-semibold text-slate-900 truncate max-w-xs" title={backup.filename}>
                                             {backup.filename}
                                         </td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">
+                                        <td className="px-4 py-3 text-slate-500 text-xs font-medium">
+                                            {getBackupTypeLabel(backup.filename)}
+                                        </td>
+                                        <td className="px-4 py-3 text-slate-500 text-xs">
                                             {new Date(backup.createdAt).toLocaleString('ko-KR')}
                                         </td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500">
+                                        <td className="px-4 py-3 text-slate-500 text-xs">
                                             {formatBytes(backup.size)}
                                         </td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                        <td className="px-4 py-3 text-right whitespace-nowrap space-x-2">
                                             <a 
                                                 href={`/api/admin/backup/${backup.filename}`}
                                                 download
-                                                className="inline-flex items-center px-2.5 py-1.5 border border-slate-300 shadow-sm text-xs font-medium rounded text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                className="inline-flex items-center px-2.5 py-1.5 border border-slate-350 shadow-sm text-xs font-bold rounded-lg text-slate-700 bg-white hover:bg-slate-50 transition-colors"
                                             >
                                                 <Download className="w-3.5 h-3.5 mr-1" />
                                                 다운로드
@@ -202,7 +254,7 @@ export default function BackupRestoreSection() {
                                             <button
                                                 onClick={() => handleDeleteBackup(backup.filename)}
                                                 disabled={actionLoading}
-                                                className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                                                className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-bold rounded-lg text-red-700 bg-red-50 hover:bg-red-100 disabled:opacity-50 transition-colors"
                                             >
                                                 <Trash2 className="w-3.5 h-3.5 mr-1" />
                                                 삭제

@@ -19,12 +19,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ filename
         const safeFilename = path.basename(filename);
         const filePath = path.join(BACKUP_DIR, safeFilename);
 
+        const contentType = safeFilename.endsWith('.zip') ? 'application/zip' : 'application/json';
         const fileBuffer = await readFile(filePath);
 
         return new NextResponse(fileBuffer, {
             status: 200,
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': contentType,
                 'Content-Disposition': `attachment; filename="${safeFilename}"`
             }
         });
