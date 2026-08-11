@@ -46,13 +46,21 @@ export default function BackupRestoreSection() {
         setMessage(null);
         try {
             const res = await fetch(`/api/admin/backup?type=${type}`, { method: 'POST' });
-            if (!res.ok) throw new Error("백업 생성 실패");
+            let data = null;
+            let errorMessage = "";
+            try {
+                data = await res.json();
+            } catch (jsonErr) {
+                const text = await res.text().catch(() => "");
+                errorMessage = text ? text.substring(0, 150) : `HTTP status ${res.status}`;
+            }
+
+            if (!res.ok) throw new Error(data?.error || errorMessage || "백업 생성 실패");
             
-            const data = await res.json();
             setMessage({ type: 'success', text: `${typeName} 백업 파일(${data.filename})이 생성되었습니다.` });
             fetchBackups();
-        } catch (error) {
-            setMessage({ type: 'error', text: `${typeName} 백업 생성 중 오류가 발생했습니다.` });
+        } catch (error: any) {
+            setMessage({ type: 'error', text: `${typeName} 백업 생성 중 오류가 발생했습니다. (${error.message})` });
         } finally {
             setLoading(false);
         }
