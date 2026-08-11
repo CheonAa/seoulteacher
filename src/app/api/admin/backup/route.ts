@@ -2,14 +2,49 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from '@/lib/prisma';
-import { writeFile, readdir, mkdir, stat, unlink } from 'fs/promises';
+import { writeFile, readdir, mkdir, stat } from 'fs/promises';
 import path from 'path';
 import os from 'os';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import AdmZip from 'adm-zip';
 
-const execPromise = promisify(exec);
 const BACKUP_DIR = path.join(os.tmpdir(), 'seoulteacher_backups');
+
+const EXCLUDED_DIRS = new Set([
+    'node_modules',
+    '.next',
+    '.git',
+    '.gemini',
+    'tmp',
+    'backup files',
+    'seoulteacher_backups'
+]);
+
+const EXCLUDED_FILES = new Set([
+    'test_dup.zip',
+    'test_zip.zip'
+]);
+
+// 디렉토리를 AdmZip 객체에 재귀적으로 추가하는 헬퍼 함수
+async function addDirectoryToZip(zip: AdmZip, localPath: string, zipPathPrefix: string) {
+    try {
+        const items = await readdir(localPath);
+        for (const item of items) {
+            if (EXCLUDED_DIRS.has(item) || EXCLUDED_FILES.has(item)) continue;
+            if (item.endsWith('.zip')) continue;
+
+            const fullPath = path.join(localPath, item);
+            const itemStat = await stat(fullPath);
+
+            if (itemStat.isDirectory()) {
+                await addDirectoryToZip(zip, fullPath, path.join(zipPathPrefix, item));
+            } else {
+                zip.addLocalFile(fullPath, zipPathPrefix);
+            }
+        }
+    } catch (e) {
+        // 폴더가 없거나 읽기 권한 실패 시 무시
+    }
+}
 
 export async function GET(req: Request) {
     try {
@@ -25,7 +60,6 @@ export async function GET(req: Request) {
         }
 
         const files = await readdir(BACKUP_DIR);
-        // JSON 및 ZIP 파일 모두 목록화
         const backupFiles = files.filter(f => f.endsWith('.json') || f.endsWith('.zip'));
 
         const backupList = await Promise.all(backupFiles.map(async (file) => {
@@ -38,7 +72,6 @@ export async function GET(req: Request) {
             };
         }));
 
-        // Sort descending by creation date
         backupList.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
         return NextResponse.json({ backups: backupList });
@@ -57,9 +90,8 @@ export async function POST(req: Request) {
 
         await mkdir(BACKUP_DIR, { recursive: true });
 
-        // Parse query parameter or body parameter
         const { searchParams } = new URL(req.url);
-        const type = searchParams.get('type') || 'db'; // db, uploads, source, all
+        const type = searchParams.get('type') || 'db';
 
         // KST 기준 날짜 포맷 (YYYYMMDD_HHMMSS)
         const date = new Date();
@@ -68,7 +100,6 @@ export async function POST(req: Request) {
         const pad = (n: number) => n.toString().padStart(2, '0');
         const dateString = `${kstDate.getUTCFullYear()}${pad(kstDate.getUTCMonth() + 1)}${pad(kstDate.getUTCDate())}_${pad(kstDate.getUTCHours())}${pad(kstDate.getUTCMinutes())}${pad(kstDate.getUTCSeconds())}`;
 
-        // 1. Database Backup helper
         const getDatabaseData = async () => {
             return {
                 users: await prisma.user.findMany(),
@@ -84,7 +115,6 @@ export async function POST(req: Request) {
                 notices: await prisma.notice.findMany(),
                 noticeAttachments: await prisma.noticeAttachment.findMany(),
                 consultations: await prisma.consultation.findMany(),
-                // 추가된 6개 LMS 테이블 백업 포함
                 courses: await prisma.course.findMany(),
                 chapters: await prisma.chapter.findMany(),
                 lectures: await prisma.lecture.findMany(),
@@ -111,9 +141,17 @@ export async function POST(req: Request) {
             const filename = `seoulteacher_uploads_backup_${dateString}.zip`;
             const filePath = path.join(BACKUP_DIR, filename);
 
-            // Compress public/uploads using powershell
+            const zip = new AdmZip();
             const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-            await execPromise(`powershell -Command "Compress-Archive -Path '${uploadsDir}' -DestinationPath '${filePath}' -Force"`);
+            
+            try {
+                zip.addLocalFolder(uploadsDir, 'uploads');
+            } catch (err) {
+                // 업로드 폴더가 비어 있거나 없는 경우 플레이스홀더 파일 추가
+                zip.addFile('placeholder.txt', Buffer.from('No uploads found.'));
+            }
+            
+            zip.writeZip(filePath);
 
             return NextResponse.json({
                 message: '앱 자료(업로드 파일) 백업 파일이 생성되었습니다.',
@@ -124,9 +162,10 @@ export async function POST(req: Request) {
             const filename = `seoulteacher_source_backup_${dateString}.zip`;
             const filePath = path.join(BACKUP_DIR, filename);
 
-            // Compress source files, excluding bulky folders using powershell
+            const zip = new AdmZip();
             const projectDir = process.cwd();
-            await execPromise(`powershell -Command "Get-ChildItem -Path '${projectDir}' -Exclude 'node_modules', '.next', '.git', '.gemini', 'tmp', '*.zip', 'backup files' | Compress-Archive -DestinationPath '${filePath}' -Force"`);
+            await addDirectoryToZip(zip, projectDir, '');
+            zip.writeZip(filePath);
 
             return NextResponse.json({
                 message: '소스 코드 백업 파일이 생성되었습니다.',
@@ -137,19 +176,25 @@ export async function POST(req: Request) {
             const filename = `seoulteacher_full_backup_${dateString}.zip`;
             const filePath = path.join(BACKUP_DIR, filename);
 
-            // 1. Write DB JSON to a temp file
+            const zip = new AdmZip();
+
+            // 1. 메모리상의 DB JSON 데이터 바로 추가
             const dbData = await getDatabaseData();
-            const tempDbPath = path.join(BACKUP_DIR, `database_backup_${dateString}.json`);
-            await writeFile(tempDbPath, JSON.stringify(dbData, null, 2), 'utf-8');
+            zip.addFile(`database_backup_${dateString}.json`, Buffer.from(JSON.stringify(dbData, null, 2), 'utf-8'));
 
-            // 2. Compress DB JSON, uploads, and source code together
+            // 2. 업로드 파일 폴더 추가
+            const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+            try {
+                zip.addLocalFolder(uploadsDir, 'uploads');
+            } catch (e) {
+                // ignore
+            }
+
+            // 3. 프로젝트 소스 코드 파일 추가
             const projectDir = process.cwd();
-            const uploadsDir = path.join(projectDir, 'public', 'uploads');
-            
-            await execPromise(`powershell -Command "Compress-Archive -Path '${uploadsDir}', '${projectDir}\\src', '${projectDir}\\prisma', '${projectDir}\\public', '${projectDir}\\package.json', '${projectDir}\\next.config.ts', '${projectDir}\\tsconfig.json', '${tempDbPath}' -DestinationPath '${filePath}' -Force"`);
+            await addDirectoryToZip(zip, projectDir, '');
 
-            // 3. Clean up the temp DB file
-            await unlink(tempDbPath);
+            zip.writeZip(filePath);
 
             return NextResponse.json({
                 message: '전체 백업(DB, 앱 자료, 소스 코드) 파일이 생성되었습니다.',
@@ -158,8 +203,8 @@ export async function POST(req: Request) {
         }
 
         return NextResponse.json({ error: '알 수 없는 백업 종류입니다.' }, { status: 400 });
-    } catch (error) {
+    } catch (error: any) {
         console.error('POST Create Backup Error:', error);
-        return NextResponse.json({ error: '백업 생성에 실패했습니다.' }, { status: 500 });
+        return NextResponse.json({ error: `백업 생성 실패: ${error.message || error}` }, { status: 500 });
     }
 }
