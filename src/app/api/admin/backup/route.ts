@@ -7,7 +7,10 @@ import path from 'path';
 import os from 'os';
 import AdmZip from 'adm-zip';
 
-const BACKUP_DIR = path.join(os.tmpdir(), 'seoulteacher_backups');
+let BACKUP_DIR = path.join(process.cwd(), 'backup_files');
+if (process.env.VERCEL || process.env.NOW_REGION) {
+    BACKUP_DIR = path.join(os.tmpdir(), 'seoulteacher_backups');
+}
 
 const EXCLUDED_DIRS = new Set([
     'node_modules',

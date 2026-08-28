@@ -5,7 +5,10 @@ import { unlink, readFile } from 'fs/promises';
 import path from 'path';
 import os from 'os';
 
-const BACKUP_DIR = path.join(os.tmpdir(), 'seoulteacher_backups');
+let BACKUP_DIR = path.join(process.cwd(), 'backup_files');
+if (process.env.VERCEL || process.env.NOW_REGION) {
+    BACKUP_DIR = path.join(os.tmpdir(), 'seoulteacher_backups');
+}
 
 export async function GET(req: Request, { params }: { params: Promise<{ filename: string }> }) {
     try {
