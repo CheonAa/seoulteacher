@@ -12,8 +12,8 @@ export async function POST(req: Request) {
         }
 
         const role = session.user.role;
-        if (role !== 'ADMIN' && role !== 'OWNER' && role !== 'INSTRUCTOR') {
-            return NextResponse.json({ error: '관리자, 원장님 또는 강사만 일괄 등록을 사용할 수 있습니다.' }, { status: 403 });
+        if (role !== 'ADMIN' && role !== 'OWNER') {
+            return NextResponse.json({ error: '관리자 또는 원장님만 일괄 등록을 사용할 수 있습니다.' }, { status: 403 });
         }
 
         const instructors = await prisma.user.findMany({

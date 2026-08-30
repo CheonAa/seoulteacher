@@ -314,7 +314,7 @@ export default function StudentTable({ initialStudents, instructors, currentUser
                     />
                 </div>
                 
-                {(currentUserRole === 'ADMIN' || currentUserRole === 'OWNER' || currentUserRole === 'INSTRUCTOR') && (
+                {(currentUserRole === 'ADMIN' || currentUserRole === 'OWNER') && (
                     <div className="flex items-center gap-2 flex-wrap justify-end">
                         <div className="flex items-center gap-2 border-r border-slate-200 pr-3 mr-1">
                             <button onClick={handleBriefDownload} disabled={isDownloading} className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors gap-1.5" title="현재 표기된 학생 현황만 빠르게 다운로드">
