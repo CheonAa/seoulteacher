@@ -12,8 +12,8 @@ export async function POST(req: Request) {
         }
 
         const role = session.user.role;
-        if (role !== 'ADMIN' && role !== 'OWNER') {
-            return NextResponse.json({ error: '관리자 또는 원장님만 일괄 등록을 사용할 수 있습니다.' }, { status: 403 });
+        if (role !== 'ADMIN' && role !== 'OWNER' && role !== 'INSTRUCTOR') {
+            return NextResponse.json({ error: '관리자, 원장님 또는 강사만 일괄 등록을 사용할 수 있습니다.' }, { status: 403 });
         }
 
         const instructors = await prisma.user.findMany({
@@ -141,6 +141,45 @@ export async function POST(req: Request) {
                 }
 
                 if (existingStudent) {
+                    // Check authorization for INSTRUCTOR
+                    if (role === 'INSTRUCTOR') {
+                        const isCreator = existingStudent.creatorId === creatorId;
+                        const isAssigned = await tx.enrollment.findFirst({
+                            where: { studentId: existingStudent.id, instructorId: creatorId }
+                        });
+                        if (!isCreator && !isAssigned) {
+                            throw new Error(`담당 중인 학생이 아니거나 등록 권한이 없습니다: ${existingStudent.name}`);
+                        }
+                    }
+
+                    // Update student fields only if they are provided (not null/empty) in the excel row
+                    const studentUpdateData: any = {};
+                    if (s.englishName && s.englishName.trim()) {
+                        studentUpdateData.englishName = s.englishName.trim();
+                    }
+                    if (s.gender && s.gender.trim()) {
+                        studentUpdateData.gender = s.gender.trim().toUpperCase();
+                    }
+                    if (s.school && s.school.trim()) {
+                        studentUpdateData.school = s.school.trim();
+                    }
+                    if (s.grade && s.grade.trim()) {
+                        studentUpdateData.grade = s.grade.trim();
+                    }
+                    if (s.shuttleStatus && s.shuttleStatus.trim()) {
+                        studentUpdateData.shuttleStatus = s.shuttleStatus === 'BOARDING' ? 'BOARDING' : 'NOT_BOARDING';
+                    }
+                    if (s.shuttleLocation && s.shuttleLocation.trim()) {
+                        studentUpdateData.shuttleLocation = s.shuttleLocation.trim();
+                    }
+
+                    if (Object.keys(studentUpdateData).length > 0) {
+                        await tx.student.update({
+                            where: { id: existingStudent.id },
+                            data: studentUpdateData
+                        });
+                    }
+
                     // 1. Add enrollments
                     for (const enrData of enrollmentsData) {
                         await tx.enrollment.create({

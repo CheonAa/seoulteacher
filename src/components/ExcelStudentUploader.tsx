@@ -50,13 +50,13 @@ export default function ExcelStudentUploader() {
                 if (!groupedStudents.has(stKey)) {
                     groupedStudents.set(stKey, {
                         name: stName,
-                        englishName: stEnglishName,
-                        gender: String(row['성별'] || 'M').trim().toUpperCase(),
-                        school: String(row['학교'] || '').trim(),
-                        grade: String(row['학년'] || '').trim(),
-                        phone: stPhone,
+                        englishName: stEnglishName || null,
+                        gender: String(row['성별'] || '').trim().toUpperCase() || null,
+                        school: String(row['학교'] || '').trim() || null,
+                        grade: String(row['학년'] || '').trim() || null,
+                        phone: stPhone || null,
                         shuttleStatus: String(row['차량탑승여부'] || '').trim() === 'O' ? 'BOARDING' : 'NOT_BOARDING',
-                        shuttleLocation: String(row['차량탑승지'] || '').trim(),
+                        shuttleLocation: String(row['차량탑승지'] || '').trim() || null,
                         parents: [],
                         enrollments: []
                     });
