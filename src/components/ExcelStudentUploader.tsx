@@ -220,7 +220,7 @@ export default function ExcelStudentUploader() {
         ]);
         const wb = xlsx.utils.book_new();
         xlsx.utils.book_append_sheet(wb, ws, "학생일괄업로드");
-        xlsx.writeFile(wb, "학생_수강_일괄등로_양식.xlsx");
+        xlsx.writeFile(wb, "학생_수강_일괄등록_양식.xlsx");
     };
 
     return (
