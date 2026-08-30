@@ -99,12 +99,14 @@ export async function POST(req: Request) {
                 const enrollmentsData = s.enrollments.map((enr: any) => {
                     // Find instructor by email or name
                     const inst = instructors.find(i => 
-                        i.email.toLowerCase() === enr.instructorEmail.toLowerCase() || 
-                        i.name === enr.instructorEmail
+                        (enr.instructorEmail && i.email.toLowerCase() === enr.instructorEmail.toLowerCase()) || 
+                        (enr.instructorName && i.name === enr.instructorName) ||
+                        (enr.instructorEmail && i.name === enr.instructorEmail)
                     );
                     
                     if (!inst) {
-                        throw new Error(`강사 정보를 찾을 수 없습니다: ${enr.instructorEmail} (학생: ${s.name})`);
+                        const searchToken = [enr.instructorName, enr.instructorEmail].filter(Boolean).join(" / ") || '정보 없음';
+                        throw new Error(`강사 정보를 찾을 수 없습니다: ${searchToken} (학생: ${s.name})`);
                     }
 
                     // Auto-calculate fee if not provided

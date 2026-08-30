@@ -218,12 +218,84 @@ export default function StudentTable({ initialStudents, instructors, currentUser
         }
     };
 
-    const handleDownloadTemplate = () => {
-        // Now handled by ExcelStudentUploader
-    };
+    const handleBulkTemplateDownload = async () => {
+        if (filteredStudents.length === 0) {
+            alert("다운로드할 결과가 존재하지 않습니다.");
+            return;
+        }
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        // Now handled by ExcelStudentUploader
+        setIsDownloading(true);
+        try {
+            const studentIds = filteredStudents.map(s => s.id);
+            const res = await fetch('/api/admin/students/export', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: studentIds })
+            });
+
+            if (!res.ok) {
+                throw new Error("데이터 조회 실패");
+            }
+
+            const detailedStudents = await res.json();
+
+            // Flat map students to match template format
+            const exportRows: any[] = [];
+            detailedStudents.forEach((student: any) => {
+                const parents = student.parents || [];
+                const enrollments = student.enrollments || [];
+                const maxRows = Math.max(parents.length, enrollments.length, 1);
+
+                for (let i = 0; i < maxRows; i++) {
+                    const parent = parents[i] || {};
+                    const enrollment = enrollments[i] || {};
+                    const instructor = enrollment.instructor || {};
+
+                    exportRows.push({
+                        '이름(한글)': student.name,
+                        '이름(영문)': student.englishName || '',
+                        '성별': student.gender || '',
+                        '학교': student.school || '',
+                        '학년': student.grade || '',
+                        '학생연락처': student.phone || '',
+                        '차량탑승여부': student.shuttleStatus === 'BOARDING' ? 'O' : 'X',
+                        '차량탑승지': student.shuttleLocation || '',
+                        '학부모이름(한글)': parent.name || '',
+                        '학부모이름(영문)': parent.englishName || '',
+                        '학부모연락처': parent.phone || '',
+                        '관계': parent.relation || '',
+                        '담당강사이메일': instructor.email || '',
+                        '담당강사명': instructor.name || '',
+                        '수강과목명': enrollment.subjectName || '',
+                        '교육과정': enrollment.curriculum === 'INTERNATIONAL' ? '해외' : '한국',
+                        '기간': enrollment.period === 'VACATION' ? '방학' : '학기',
+                        '수강학년': enrollment.gradeGroup === 'G10_12' ? 'G10-12' : 
+                                    enrollment.gradeGroup === 'G7_9' ? 'G7-9' : 
+                                    enrollment.gradeGroup === 'HIGH' ? '고등' : 
+                                    enrollment.gradeGroup === 'MID' ? '중등' : 
+                                    enrollment.gradeGroup === 'ELEM' ? '초등' : '',
+                        '목표회차': enrollment.targetSessionsMonth || '',
+                        '시작일자': enrollment.startDate ? enrollment.startDate.split('T')[0] : '',
+                        '입금자명': enrollment.depositorName || '',
+                        '입금계좌번호': enrollment.accountNumber || '',
+                        '이월 횟수': enrollment.carryOverSessions || 0,
+                        '이월 총금액': enrollment.carryOverAmount || 0,
+                        '1회차 수강료': enrollment.feePerSession || ''
+                    });
+                }
+            });
+
+            const ws = XLSX.utils.json_to_sheet(exportRows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "학생일괄업로드");
+            XLSX.writeFile(wb, `SeoulTeacher_일괄등록포맷_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+        } catch (error) {
+            console.error(error);
+            alert("다운로드 중 오류가 발생했습니다.");
+        } finally {
+            setIsDownloading(false);
+        }
     };
 
     return (
@@ -252,6 +324,10 @@ export default function StudentTable({ initialStudents, instructors, currentUser
                             <button onClick={handleDetailedDownload} disabled={isDownloading} className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors gap-1.5 disabled:opacity-50" title="필터링된 학생의 학부모, 수강 정보 등 상세 데이터를 병합하여 다운로드">
                                 <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
                                 <span className="hidden sm:inline">{isDownloading ? '생성 중...' : '상세 정보 다운로드'}</span>
+                            </button>
+                            <button onClick={handleBulkTemplateDownload} disabled={isDownloading} className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors gap-1.5 disabled:opacity-50" title="현재 학생 목록을 엑셀 일괄 업로드 양식 형태로 다운로드 (수정 후 재업로드 가능)">
+                                <FileSpreadsheet className="w-4 h-4 text-blue-600" />
+                                <span className="hidden sm:inline">일괄 업로드 양식으로 다운로드</span>
                             </button>
                         </div>
                         {selectedIds.size > 0 && (

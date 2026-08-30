@@ -105,6 +105,7 @@ export default function ExcelStudentUploader() {
 
                 studentData.enrollments.push({
                     instructorEmail: String(row['담당강사이메일'] || '').trim(),
+                    instructorName: String(row['담당강사명'] || '').trim(),
                     subjectName: String(row['수강과목명'] || '').trim(),
                     curriculum: cur,
                     period: period,
@@ -176,6 +177,7 @@ export default function ExcelStudentUploader() {
                 '학부모연락처': '010-1234-9999',
                 '관계': 'Father',
                 '담당강사이메일': 'teacher1@example.com',
+                '담당강사명': '김교사',
                 '수강과목명': '인터수학',
                 '교육과정': '해외',
                 '기간': '학기',
@@ -202,6 +204,7 @@ export default function ExcelStudentUploader() {
                 '학부모연락처': '010-1234-8888',
                 '관계': 'Mother',
                 '담당강사이메일': 'teacher2@example.com',
+                '담당강사명': '이교사',
                 '수강과목명': '기초영어',
                 '교육과정': '한국',
                 '기간': '방학',
@@ -296,7 +299,7 @@ export default function ExcelStudentUploader() {
                                                                 {student.enrollments.map((enr: any, eIdx: number) => (
                                                                     <li key={eIdx}>
                                                                         <span className="font-semibold">{enr.subjectName}</span> 
-                                                                        ({enr.period === 'SEMESTER' ? '학기' : '방학'}, {enr.targetSessionsMonth}회) - 강사이메일: {enr.instructorEmail || '누락됨!!'}
+                                                                        ({enr.period === 'SEMESTER' ? '학기' : '방학'}, {enr.targetSessionsMonth}회) - 강사: {enr.instructorName || '이름 없음'} ({enr.instructorEmail || '이메일 없음'})
                                                                     </li>
                                                                 ))}
                                                             </ul>
