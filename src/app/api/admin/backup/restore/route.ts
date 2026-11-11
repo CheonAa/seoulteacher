@@ -40,6 +40,7 @@ async function restoreDatabase(data: any) {
         prisma.course.deleteMany(),
         
         prisma.consultation.deleteMany(),
+        prisma.depositRecord.deleteMany(),
         prisma.noticeAttachment.deleteMany(),
         prisma.monthlyBilling.deleteMany(),
         prisma.attendance.deleteMany(),
@@ -67,6 +68,7 @@ async function restoreDatabase(data: any) {
         ...(data.monthlyBillings?.length > 0 ? [prisma.monthlyBilling.createMany({ data: data.monthlyBillings })] : []),
         ...(data.payrolls?.length > 0 ? [prisma.payroll.createMany({ data: data.payrolls })] : []),
         ...(data.consultations?.length > 0 ? [prisma.consultation.createMany({ data: data.consultations })] : []),
+        ...(data.depositRecords?.length > 0 ? [prisma.depositRecord.createMany({ data: data.depositRecords })] : []),
 
         // 추가된 6개 LMS 데이터 복구
         ...(data.courses?.length > 0 ? [prisma.course.createMany({ data: data.courses })] : []),

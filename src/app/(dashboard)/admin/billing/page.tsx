@@ -1,26 +1,60 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
-import BillingTable from "./BillingTable"; // 클라이언트 컴포넌트로 분리
+import BillingClientTabs from "./BillingClientTabs";
 
 export default async function BillingPage() {
     const session = await getServerSession(authOptions);
 
-    const billings = await prisma.monthlyBilling.findMany({
-        include: {
-            enrollment: {
-                include: {
-                    student: true,
-                    instructor: true
+    const [billings, rawDeposits, instructors, students] = await Promise.all([
+        prisma.monthlyBilling.findMany({
+            include: {
+                enrollment: {
+                    include: {
+                        student: true,
+                        instructor: true
+                    }
                 }
-            }
-        },
-        orderBy: [
-            { year: 'desc' },
-            { month: 'desc' },
-            { isPaid: 'asc' }
-        ]
-    });
+            },
+            orderBy: [
+                { year: 'desc' },
+                { month: 'desc' },
+                { isPaid: 'asc' }
+            ]
+        }),
+        prisma.depositRecord.findMany({
+            include: {
+                instructor: { select: { id: true, name: true } },
+                student: { select: { id: true, name: true } }
+            },
+            orderBy: [
+                { depositDate: 'desc' },
+                { createdAt: 'desc' }
+            ]
+        }),
+        prisma.user.findMany({
+            where: { role: 'INSTRUCTOR' },
+            select: { id: true, name: true },
+            orderBy: { name: 'asc' }
+        }),
+        prisma.student.findMany({
+            select: { id: true, name: true },
+            orderBy: { name: 'asc' }
+        })
+    ]);
+
+    const deposits = rawDeposits.map((d) => ({
+        id: d.id,
+        depositDate: d.depositDate.toISOString(),
+        amount: d.amount,
+        description: d.description,
+        matchedStudentName: d.matchedStudentName,
+        studentId: d.studentId,
+        instructorId: d.instructorId,
+        reconciliationStatus: d.reconciliationStatus,
+        instructor: d.instructor,
+        student: d.student
+    }));
 
     return (
         <div className="space-y-6">
@@ -30,15 +64,13 @@ export default async function BillingPage() {
                 </h1>
             </div>
 
-            <div className="bg-white shadow rounded-lg border border-slate-200 overflow-hidden">
-                <div className="px-4 py-5 sm:px-6 border-b border-slate-200">
-                    <h3 className="text-lg leading-6 font-medium text-slate-900">전체 청구 내역</h3>
-                    <p className="mt-1 max-w-2xl text-sm text-slate-500">학생들의 당월 / 이월 청구 내역을 관리합니다.</p>
-                </div>
-
-                {/* Client Component for Interactive Table */}
-                <BillingTable billings={billings} role={session?.user?.role || ''} />
-            </div>
+            <BillingClientTabs
+                deposits={deposits}
+                billings={billings}
+                instructors={instructors}
+                students={students}
+                role={session?.user?.role || ''}
+            />
         </div>
     );
 }

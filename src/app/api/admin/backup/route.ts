@@ -123,7 +123,8 @@ export async function POST(req: Request) {
                 lectures: await prisma.lecture.findMany(),
                 lectureAttachments: await prisma.lectureAttachment.findMany(),
                 courseEnrollments: await prisma.courseEnrollment.findMany(),
-                studentLectureProgresses: await prisma.studentLectureProgress.findMany()
+                studentLectureProgresses: await prisma.studentLectureProgress.findMany(),
+                depositRecords: await prisma.depositRecord.findMany()
             };
         };
 

@@ -27,6 +27,7 @@ model User {
 
   shuttleSchedules ShuttleSchedule[]
   notices          Notice[]
+  depositRecords   DepositRecord[]
 
   creatorId String? // Added to track who created this user
 
@@ -62,9 +63,10 @@ model Student {
   courseEnrollments CourseEnrollment[] // 수강 중인 온라인 강좌 목록
   lectureProgresses StudentLectureProgress[] // 개별 차시 진도 상태
 
-  enrollments   Enrollment[]
-  parents       Parent[] // 학생 1명당 여러 학부모 정보 등록 가능
-  consultations Consultation[]
+  enrollments    Enrollment[]
+  parents        Parent[] // 학생 1명당 여러 학부모 정보 등록 가능
+  consultations  Consultation[]
+  depositRecords DepositRecord[]
 
   shuttleStatus   String? @default("NOT_BOARDING") // BOARDING, NOT_BOARDING
   shuttleLocation String? // 차량 탑승지 (ex: Royal City R5)
@@ -331,4 +333,24 @@ model StudentLectureProgress {
   updatedAt   DateTime  @updatedAt
 
   @@unique([studentId, lectureId])
+}
+
+// ==========================================
+// 통장 입금 및 수강료 대사 내역 모델
+// ==========================================
+
+model DepositRecord {
+  id                   String   @id @default(uuid())
+  depositDate          DateTime // 입금일자
+  amount               Int      // 입금액 (VND)
+  description          String   // 통장 적요 / 입금자명
+  matchedStudentName   String?  // 매칭 수강생 표시명
+  studentId            String?  // 연결된 학생 ID (선택)
+  student              Student? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  instructorId         String?  // 담당 강사 User ID (선택)
+  instructor           User?    @relation(fields: [instructorId], references: [id], onDelete: SetNull)
+  reconciliationStatus String   @default("입금확인") // 대사 결과: "입금확인", "미확인"
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
