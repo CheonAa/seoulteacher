@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from '@/lib/prisma';
+import { syncStudentInstructorFromLatestDeposit } from '@/lib/syncStudentInstructor';
 
 export async function PATCH(
     req: Request,
@@ -19,6 +20,11 @@ export async function PATCH(
         }
 
         const { id } = await params;
+        const previous = await prisma.depositRecord.findUnique({
+            where: { id },
+            select: { studentId: true }
+        });
+
         const body = await req.json();
         const {
             depositDate,
@@ -56,6 +62,14 @@ export async function PATCH(
             }
         });
 
+        // 최근 입금일자를 기준으로 학생-담당 강사 매칭 동기화
+        if (previous?.studentId && previous.studentId !== updated.studentId) {
+            await syncStudentInstructorFromLatestDeposit(previous.studentId);
+        }
+        if (updated.studentId) {
+            await syncStudentInstructorFromLatestDeposit(updated.studentId);
+        }
+
         return NextResponse.json({ deposit: updated });
     } catch (error) {
         console.error('PATCH Deposit Error:', error);
@@ -79,7 +93,16 @@ export async function DELETE(
         }
 
         const { id } = await params;
+        const existing = await prisma.depositRecord.findUnique({
+            where: { id },
+            select: { studentId: true }
+        });
+
         await prisma.depositRecord.delete({ where: { id } });
+
+        if (existing?.studentId) {
+            await syncStudentInstructorFromLatestDeposit(existing.studentId);
+        }
 
         return NextResponse.json({ message: '입금 내역이 삭제되었습니다.' });
     } catch (error) {

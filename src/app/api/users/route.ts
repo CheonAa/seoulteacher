@@ -66,6 +66,7 @@ export async function POST(req: Request) {
             password: hashedPassword,
             name,
             role,
+            creatorId: session.user.id,
         };
 
         if (color) {

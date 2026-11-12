@@ -19,11 +19,13 @@ type StudentData = {
     qrToken: string;
     enrollments: {
         id: string;
+        instructorId: string;
         subjectName: string;
-        instructor: { name: string };
+        instructor: { id?: string; name: string };
         feePerSession: number;
         targetSessionsMonth: number;
         depositorName?: string | null;
+        startDate?: string | null;
     }[];
     creatorId: string | null;
 };
@@ -451,7 +453,7 @@ export default function StudentTable({ initialStudents, instructors, currentUser
                                             >
                                                 <QrCode className="w-4 h-4" />
                                             </button>
-                                            {(currentUserRole === 'OWNER' || currentUserRole === 'ADMIN' || student.creatorId === currentUserId || student.enrollments.some(e => instructors.find(i => i.id === currentUserId)?.name === e.instructor.name)) && (
+                                            {(currentUserRole === 'OWNER' || currentUserRole === 'ADMIN' || student.creatorId === currentUserId || student.enrollments.some(e => e.instructorId === currentUserId)) && (
                                                 <Link
                                                     href={`/admin/students/${student.id}/edit`}
                                                     className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -525,7 +527,7 @@ export default function StudentTable({ initialStudents, instructors, currentUser
                                         >
                                             <QrCode className="w-4 h-4" />
                                         </button>
-                                        {(currentUserRole === 'OWNER' || currentUserRole === 'ADMIN' || student.creatorId === currentUserId || student.enrollments.some(e => instructors.find(i => i.id === currentUserId)?.name === e.instructor.name)) && (
+                                        {(currentUserRole === 'OWNER' || currentUserRole === 'ADMIN' || student.creatorId === currentUserId || student.enrollments.some(e => e.instructorId === currentUserId)) && (
                                             <Link
                                                 href={`/admin/students/${student.id}/edit`}
                                                 className="p-1.5 text-slate-400 hover:text-emerald-600 rounded-md transition-colors"

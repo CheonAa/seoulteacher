@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from '@/lib/prisma';
+import { syncStudentInstructorFromLatestDeposit } from '@/lib/syncStudentInstructor';
 
 export async function GET() {
     try {
@@ -84,6 +85,10 @@ export async function POST(req: Request) {
                 student: { select: { id: true, name: true } }
             }
         });
+
+        if (created.studentId) {
+            await syncStudentInstructorFromLatestDeposit(created.studentId);
+        }
 
         return NextResponse.json({ deposit: created }, { status: 201 });
     } catch (error) {

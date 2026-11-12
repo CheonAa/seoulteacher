@@ -27,7 +27,7 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
             enrollments: {
                 include: {
                     instructor: {
-                        select: { name: true }
+                        select: { id: true, name: true }
                     }
                 }
             },
@@ -43,7 +43,7 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
     
     const isInstructor = session.user.role === 'INSTRUCTOR';
     const visibleEnrollments = isInstructor 
-        ? student.enrollments.filter(e => e.instructor.name === session.user.name)
+        ? student.enrollments.filter(e => e.instructorId === session.user.id)
         : student.enrollments;
 
     const enrollmentIds = visibleEnrollments.map(e => e.id);
@@ -77,7 +77,7 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
                     </div>
                 </div>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
-                    {(session.user.role === 'OWNER' || session.user.role === 'ADMIN' || student.creatorId === session.user.id || student.enrollments.some(e => e.instructor.name && e.instructor.name === session.user.name)) && (
+                    {(session.user.role === 'OWNER' || session.user.role === 'ADMIN' || student.creatorId === session.user.id || student.enrollments.some(e => e.instructorId === session.user.id)) && (
                         <Link 
                             href={`/admin/students/${student.id}/edit`}
                             className="bg-white w-full sm:w-auto text-center px-4 py-2 border border-slate-300 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-50 shadow-sm transition-colors"

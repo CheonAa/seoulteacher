@@ -51,6 +51,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
             }
         }
 
+        if (color) {
+            await prisma.shuttleSchedule.updateMany({
+                where: { instructorId: id },
+                data: { color }
+            });
+        }
+
         return NextResponse.json({ message: "사용자 정보가 업데이트되었습니다.", user: updatedUser }, { status: 200 });
     } catch (error) {
         console.error("PUT User Error:", error);

@@ -17,7 +17,11 @@ export default async function AdminInstructorsPage() {
             instructorProfile: true,
             _count: {
                 select: {
-                    enrollments: true
+                    enrollments: {
+                        where: {
+                            status: "ACTIVE"
+                        }
+                    }
                 }
             }
         },

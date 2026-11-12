@@ -29,13 +29,13 @@ export default async function AdminStudentsPage() {
     }
 
     // Fetch students with their enrollments and instructor
-    const students = await prisma.student.findMany({
+    const rawStudents = await prisma.student.findMany({
         where: studentWhereClause,
         include: {
             enrollments: {
                 include: {
                     instructor: {
-                        select: { name: true }
+                        select: { id: true, name: true }
                     }
                 }
             }
@@ -44,6 +44,14 @@ export default async function AdminStudentsPage() {
             name: 'asc'
         }
     });
+
+    const students = rawStudents.map((s) => ({
+        ...s,
+        enrollments: s.enrollments.map((e) => ({
+            ...e,
+            startDate: e.startDate ? e.startDate.toISOString() : null
+        }))
+    }));
 
     const instructors = await prisma.user.findMany({
         where: { role: 'INSTRUCTOR' },
