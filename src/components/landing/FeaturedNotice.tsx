@@ -63,12 +63,23 @@ export default async function FeaturedNotice() {
                 {/* Grid Layout */}
                 <div className={`grid grid-cols-1 gap-10 ${featuredNotices.length === 2 ? 'md:grid-cols-2' : 'max-w-3xl mx-auto'}`}>
                     {featuredNotices.map(({ notice, imageUrl }) => {
-                        // 본문 내용 요약본 추출 (HTML 태그 제거)
-                        const textPreview = notice.content
+                        // 본문 내용 요약본 추출 (HTML 태그 제거 및 HTML 엔티티 디코딩)
+                        const plainText = notice.content
                             .replace(/<[^>]*>/g, ' ')
-                            .replace(/\s+/g, ' ')
-                            .trim()
-                            .substring(0, 160) + (notice.content.length > 160 ? '...' : '');
+                            .replace(/&nbsp;|&#160;/gi, ' ')
+                            .replace(/&amp;/gi, '&')
+                            .replace(/&lt;/gi, '<')
+                            .replace(/&gt;/gi, '>')
+                            .replace(/&quot;/gi, '"')
+                            .replace(/&#39;|&apos;/gi, "'")
+                            .replace(/&#(\d+);/g, (_: string, dec: string) => String.fromCharCode(Number(dec)))
+                            .replace(/&#x([0-9a-f]+);/gi, (_: string, hex: string) => String.fromCharCode(parseInt(hex, 16)))
+                            .replace(/[\s\u00A0]+/g, ' ')
+                            .trim();
+
+                        const textPreview = plainText.length > 160
+                            ? `${plainText.substring(0, 160)}...`
+                            : plainText;
 
                         return (
                             <div key={notice.id} className="bg-white rounded-3xl overflow-hidden border border-slate-200/60 shadow-md hover:shadow-xl transition-all duration-300 flex flex-col group">
@@ -111,9 +122,11 @@ export default async function FeaturedNotice() {
                                             </Link>
                                         </h4>
 
-                                        <p className="text-slate-600 text-sm md:text-[15px] leading-relaxed line-clamp-3">
-                                            {textPreview}
-                                        </p>
+                                        {textPreview && (
+                                            <p className="text-slate-600 text-sm md:text-[15px] leading-relaxed line-clamp-3">
+                                                {textPreview}
+                                            </p>
+                                        )}
                                     </div>
 
                                     <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
