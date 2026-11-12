@@ -117,7 +117,7 @@ export default function StudentConsultationBoard({ studentId, currentUserId, cur
                                 type="date" 
                                 value={newDate}
                                 onChange={(e) => setNewDate(e.target.value)}
-                                className="w-full text-sm rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                className="w-full px-3 py-2 text-sm rounded-md border border-slate-300 bg-white text-black shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                 required
                             />
                         </div>
@@ -129,7 +129,7 @@ export default function StudentConsultationBoard({ studentId, currentUserId, cur
                                 onChange={(e) => setNewContent(e.target.value)}
                                 placeholder="학부모 혹은 학생과 나눈 상담 내용을 상세히 기록하세요."
                                 rows={6}
-                                className="w-full text-sm rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 resize-none font-sans"
+                                className="w-full px-3 py-2 text-sm rounded-md border border-slate-300 bg-white text-black shadow-sm focus:border-blue-500 focus:ring-blue-500 resize-none font-sans"
                                 required
                             />
                         </div>

@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: light;
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #000000;
 }
 
 @theme inline {
@@ -12,26 +13,44 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    color: #0f172a;
+    background-color: #f8fafc;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="range"]):not([type="color"]),
+  textarea,
+  select,
+  option {
+    color-scheme: light;
+    color: #000000;
+    background-color: #ffffff;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #64748b;
+    opacity: 1;
+  }
+
+  input:-webkit-autofill,
+  textarea:-webkit-autofill,
+  select:-webkit-autofill {
+    -webkit-text-fill-color: #000000 !important;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-/* React-Quill Image Responsiveness Fix */
+/* React-Quill Image Responsiveness & Text Color Fix */
 .ql-container {
   min-height: 400px;
+  color: #000000;
 }
 
 .ql-editor {
   min-height: 400px;
+  color: #000000;
 }
 
 .ql-editor img {

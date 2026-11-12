@@ -344,7 +344,7 @@ export default function DepositReconciliationTable({
                             setSelectedMonth(e.target.value);
                             setCurrentPage(1);
                         }}
-                        className="text-sm border border-slate-300 rounded-md px-3 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="text-sm border border-slate-300 rounded-md px-3 py-1.5 bg-white text-black focus:outline-none focus:ring-1 focus:ring-blue-500"
                     >
                         <option value="ALL">전체 기간</option>
                         {availableMonths.map((ym) => (
@@ -360,7 +360,7 @@ export default function DepositReconciliationTable({
                             setSelectedInstructor(e.target.value);
                             setCurrentPage(1);
                         }}
-                        className="text-sm border border-slate-300 rounded-md px-3 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="text-sm border border-slate-300 rounded-md px-3 py-1.5 bg-white text-black focus:outline-none focus:ring-1 focus:ring-blue-500"
                     >
                         <option value="ALL">전체 담당 강사</option>
                         {instructors.map((inst) => (
@@ -377,7 +377,7 @@ export default function DepositReconciliationTable({
                             setSelectedStatus(e.target.value);
                             setCurrentPage(1);
                         }}
-                        className="text-sm border border-slate-300 rounded-md px-3 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="text-sm border border-slate-300 rounded-md px-3 py-1.5 bg-white text-black focus:outline-none focus:ring-1 focus:ring-blue-500"
                     >
                         <option value="ALL">전체 대사 결과</option>
                         <option value="입금확인">입금확인</option>
@@ -390,7 +390,7 @@ export default function DepositReconciliationTable({
                             setPageSize(Number(e.target.value));
                             setCurrentPage(1);
                         }}
-                        className="text-sm border border-slate-300 rounded-md px-3 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="text-sm border border-slate-300 rounded-md px-3 py-1.5 bg-white text-black focus:outline-none focus:ring-1 focus:ring-blue-500"
                     >
                         <option value={50}>50건씩 보기</option>
                         <option value={100}>100건씩 보기</option>
@@ -410,7 +410,7 @@ export default function DepositReconciliationTable({
                             setCurrentPage(1);
                         }}
                         placeholder="수강생, 통장 적요 / 입금자명 검색..."
-                        className="block w-full pl-9 pr-3 py-1.5 border border-slate-300 rounded-md text-sm bg-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="block w-full pl-9 pr-3 py-1.5 border border-slate-300 rounded-md text-sm bg-white text-black placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                 </div>
             </div>
@@ -604,7 +604,7 @@ export default function DepositReconciliationTable({
                                         required
                                         value={formDate}
                                         onChange={(e) => setFormDate(e.target.value)}
-                                        className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white text-black focus:outline-none focus:ring-1 focus:ring-blue-500"
                                     />
                                 </div>
                                 <div>
@@ -619,7 +619,7 @@ export default function DepositReconciliationTable({
                                         value={formAmount}
                                         onChange={(e) => setFormAmount(e.target.value)}
                                         placeholder="예: 8000000"
-                                        className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white text-black focus:outline-none focus:ring-1 focus:ring-blue-500"
                                     />
                                 </div>
                             </div>
@@ -633,7 +633,7 @@ export default function DepositReconciliationTable({
                                     value={formDescription}
                                     onChange={(e) => setFormDescription(e.target.value)}
                                     placeholder="통장에 찍힌 적요 또는 입금자명을 입력하세요"
-                                    className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white text-black focus:outline-none focus:ring-1 focus:ring-blue-500"
                                 />
                             </div>
 
@@ -645,7 +645,7 @@ export default function DepositReconciliationTable({
                                     <select
                                         value={formStudentId}
                                         onChange={(e) => handleStudentSelectChange(e.target.value)}
-                                        className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white text-black focus:outline-none focus:ring-1 focus:ring-blue-500"
                                     >
                                         <option value="">선택 안 함 (미지정)</option>
                                         {students.map((st) => (
@@ -665,7 +665,7 @@ export default function DepositReconciliationTable({
                                         value={formMatchedStudentName}
                                         onChange={(e) => setFormMatchedStudentName(e.target.value)}
                                         placeholder="예: 홍길동"
-                                        className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white text-black focus:outline-none focus:ring-1 focus:ring-blue-500"
                                     />
                                 </div>
                             </div>
@@ -678,7 +678,7 @@ export default function DepositReconciliationTable({
                                     <select
                                         value={formInstructorId}
                                         onChange={(e) => setFormInstructorId(e.target.value)}
-                                        className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white text-black focus:outline-none focus:ring-1 focus:ring-blue-500"
                                     >
                                         <option value="">미지정 (-)</option>
                                         {instructors.map((inst) => (
@@ -696,7 +696,7 @@ export default function DepositReconciliationTable({
                                     <select
                                         value={formStatus}
                                         onChange={(e) => setFormStatus(e.target.value)}
-                                        className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white text-black focus:outline-none focus:ring-1 focus:ring-blue-500"
                                     >
                                         <option value="입금확인">입금확인</option>
                                         <option value="미확인">미확인</option>

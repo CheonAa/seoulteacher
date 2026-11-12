@@ -522,7 +522,7 @@ export default function CourseEditPage({ params }: { params: Promise<{ id: strin
                                                                                                 placeholder="https://meet.google.com/..."
                                                                                                 value={lecture.liveUrl || ""}
                                                                                                 onChange={(e) => handleLectureFieldChange(chIdx, lecIdx, "liveUrl", e.target.value)}
-                                                                                                className="w-full px-3 py-1.5 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+                                                                                                className="w-full px-3 py-1.5 border border-slate-300 rounded text-sm bg-white text-black focus:ring-1 focus:ring-blue-500 outline-none"
                                                                                             />
                                                                                         </div>
                                                                                         <div className="space-y-1">
@@ -531,7 +531,7 @@ export default function CourseEditPage({ params }: { params: Promise<{ id: strin
                                                                                                 type="datetime-local"
                                                                                                 value={lecture.liveStartTime ? new Date(new Date(lecture.liveStartTime).getTime() - new Date().getTimezoneOffset()*60000).toISOString().slice(0, 16) : ""}
                                                                                                 onChange={(e) => handleLectureFieldChange(chIdx, lecIdx, "liveStartTime", e.target.value)}
-                                                                                                className="w-full px-3 py-1.5 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+                                                                                                className="w-full px-3 py-1.5 border border-slate-300 rounded text-sm bg-white text-black focus:ring-1 focus:ring-blue-500 outline-none"
                                                                                             />
                                                                                         </div>
                                                                                     </div>
@@ -544,7 +544,7 @@ export default function CourseEditPage({ params }: { params: Promise<{ id: strin
                                                                                         value={lecture.content || ""}
                                                                                         onChange={(e) => handleLectureFieldChange(chIdx, lecIdx, "content", e.target.value)}
                                                                                         rows={3}
-                                                                                        className="w-full px-3 py-1.5 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none resize-none"
+                                                                                        className="w-full px-3 py-1.5 border border-slate-300 rounded text-sm bg-white text-black focus:ring-1 focus:ring-blue-500 outline-none resize-none"
                                                                                     />
                                                                                 </div>
 

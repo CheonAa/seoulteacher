@@ -310,7 +310,7 @@ export default function StudentTable({ initialStudents, instructors, currentUser
                         placeholder="이름 또는 학교 이름으로 검색..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md leading-5 bg-white placeholder-slate-500 focus:outline-none focus:placeholder-slate-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
+                        className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md leading-5 bg-white text-black placeholder-slate-500 focus:outline-none focus:placeholder-slate-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
                     />
                 </div>
                 
